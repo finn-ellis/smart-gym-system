@@ -1,0 +1,11 @@
+{
+    "hooks": {
+        "PostToolUse": [
+            {
+                "type": "command",
+                "command": "bash .github/scripts/format-backend.sh",
+                "timeout": 15
+            }
+        ]
+    }
+}
