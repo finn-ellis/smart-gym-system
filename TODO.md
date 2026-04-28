@@ -1,5 +1,6 @@
 # Project TODOS
 - [x] Project Structure & System Scaffolding
+- [ ] Fix frontend setup (vite/react/tsx) & setup backend for easy running with Flask
 - [ ] Verify components align with SAD
   - [ ] IoT Gateway (Wristband support only for Demo)
   - [ ] MLLM Handler (Manual capture mode for Demo)

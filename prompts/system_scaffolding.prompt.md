@@ -38,6 +38,7 @@ Please scaffold the application inside src reflecting the `Gym Management Portal
     *   `WristbandManagement.jsx` (Wristband Assigning & Returning)
 
 **Execution Steps:**
+Utilize a strict TODO:
 1. Read the provided architecture document to verify the exact names and responsibilities of each component and datatype.
 2. Generate the directory structure and empty files.
 3. Define all core datatypes, aliases, and models in a centralized datatypes file for both frontend and backend.
