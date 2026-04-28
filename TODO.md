@@ -1,0 +1,20 @@
+# Project TODOS
+- [x] Project Structure & System Scaffolding
+- [ ] Verify components align with SAD
+  - [ ] IoT Gateway (Wristband support only for Demo)
+  - [ ] MLLM Handler (Manual capture mode for Demo)
+  - [ ] ~~Environmental Sensor Handler~~ (Simulated/Omitted for Demo)
+  - [ ] Wristband Handler
+  - [ ] Data & Analytics Engine
+  - [ ] ~~Report Generation Handler~~ (Omitted for Demo)
+  - [ ] Gym Management Portal Handler
+  - [ ] Gym Management Portal App (Dashboards & Alerting focus)
+  - [ ] Data Stores (Profiles, Video/Gym Archives, Alert Log)
+- [ ] Implement Architecture Use Cases from SAD (component functionality)
+  - [ ] UC1: Critical Safety Event Detection
+  - [ ] ~~UC2: Environmental Monitoring and Hazard Detection~~ (Simulated/Omitted for Demo)
+  - [ ] UC3: Biometric Wearable Data Processing
+  - [ ] UC4: Warning Health Event Detection
+  - [ ] UC5: Facility Data Visibility and Archival Logging
+  - [ ] ~~UC6: Observational Report Generation~~ (Omitted for Demo)
+- [ ] Verify User Use Cases against SRS
