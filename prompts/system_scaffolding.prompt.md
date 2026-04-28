@@ -10,6 +10,12 @@
 1. **Backend (src):** Python, Flask, Flask-SocketIO
 2. **Frontend (src):** React / Vite
 
+**Datatype Definitions:**
+Before scaffolding the main components, create a shared datatypes file in both the backend (e.g., `datatypes.py` or `models.py`) and frontend (e.g., `types.js` or `types.ts`) to define the core data structures, type aliases, and enumerations derived from the SAD. These must include:
+*   **Enums:** `AlertSeverity` (Informational, Warning, Critical), `ReportType` (Hourly, Daily, Weekly, Monthly), `StatusLevel` (Normal, Warning, Critical).
+*   **Identifiers:** Type aliases for `SensorId`, `WristbandId`, `ZoneId`, `MemberId`, `AlertId`, `ReportId`, `VideoClipId`.
+*   **Data Models (Classes/Interfaces/Types):** `ThresholdConfig`, `AirQualityReading`, `EnvironmentalReading`, `BiometricReading`, `GymState`, `AlertInfo`, `Report`, `ReportInfo`, `MemberProfile`, `VideoClip`, `OccupancyCountsByZone`, MetricsLoad: (can be omitted), and `CustomizedHealthThresholds`.
+
 **Backend Component Requirements (Python/Flask):**
 Please create the corresponding files/modules in the src directory. Each should contain an empty class or basic boilerplate reflecting its purpose:
 *   `iot_gateway.py`: Class `IoTGateway` with placeholder methods for `pollSensor(SensorId)` and `pollWristband(WristbandId)`.
@@ -32,7 +38,8 @@ Please scaffold the application inside src reflecting the `Gym Management Portal
     *   `WristbandManagement.jsx` (Wristband Assigning & Returning)
 
 **Execution Steps:**
-1. Read the provided architecture document to verify the exact names and responsibilities of each component.
+1. Read the provided architecture document to verify the exact names and responsibilities of each component and datatype.
 2. Generate the directory structure and empty files.
-3. Populate the files with basic class definitions, Flask web server boilerplate, WebSocket initialization, and React component scaffolding.
-4. Stop. Review to ensure zero functional logic has been written.
+3. Define all core datatypes, aliases, and models in a centralized datatypes file for both frontend and backend.
+4. Populate the remaining files with basic class definitions, Flask web server boilerplate, WebSocket initialization, and React component scaffolding.
+5. Stop. Review to ensure zero functional logic has been written.
