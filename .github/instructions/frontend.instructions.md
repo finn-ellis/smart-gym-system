@@ -14,7 +14,7 @@ applyTo: "portal-app/**"
 ## Development Workflow
 - **Clean Architecture**: Place reusable UI components in `portal-app/src/components` and page-level components in `portal-app/src/pages`.
 - **API Communication**: Colocate API calls and data fetching logic intelligently. Use standard lightweight data fetching (e.g., standard `fetch` or a lightweight hook) inside a dedicated `utils` or `services` folder.
-- **Strict Typing**: If TypeScript is used, define clear and strict interfaces for component props and API responses.
+- **Strict Typing**: Always use TypeScript and `.tsx` extensions for React components. Define clear and strict interfaces for component props and API responses.
 
 ## Code Style
 - **Destructing**: Always destructure props and state for cleaner code.
