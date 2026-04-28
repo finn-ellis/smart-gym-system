@@ -161,7 +161,7 @@ The Architecture Design Diagram (*Figure 1*) depicts broad system organization. 
 | Environmental Sensor Handler |  |
 | :---- | :---- |
 | Utilizes APIs from IoT Gateway to read from environmental sensors and log the data to the **Data & Analytics Engine**. It is responsible for evaluation of environmental data against safety thresholds and ensures that air quality and climate anomalies are classified and logged before being sent to staff through the **Data & Analytics Engine.** |  |
-| **State** |  **zoneThresholds** Map\<ZoneId, ThresholdConfig\>. Contains numerical limits for Air quality for each functional gym zone currentReadings Map\<SensorId, LatestTelemetry\>. Receives most recent data packets from the IoT Gateway for real-time comparison zoneStatus Map\<ZoneId, StatusLevel\> tracking whether a zone is currently in a \[Normal\], \[Warning\], or \[Critical\] state  |
+| **State** |  **zoneThresholds** Map\<ZoneId, ThresholdConfig\>. Contains numerical limits for Air quality for each functional gym zone currentReadings Map\<SensorId, AirQualityReading\>. Receives most recent data packets from the IoT Gateway for real-time comparison zoneStatus Map\<ZoneId, StatusLevel\> tracking whether a zone is currently in a \[Normal\], \[Warning\], or \[Critical\] state  |
 |  |  |
 | **Interface** |  No external interface |
 |  |  |
@@ -322,7 +322,7 @@ User-perspective use cases described in the Software Requirement Specifications 
 **Wristband Deassignment and Session End**
 
 1. The member finishes their session and returns their wristband. Staff use the **Gym Management Portal App** to initiate the deregistration.  
-2. The **Gym Management Portal App** calls the **Gym Management Portal Handler**’s unpairWristband interface.  
+2. The **Gym Management Portal App** calls the **Gym Management Portal Handler**’s onWristbandReturned interface.  
 3. The **Gym Management Portal Handler** routes the unpairing request by calling the **Wristband Handler**’s unpairWristband interface.  
 9. The **Wristband Handler** updates its activeSessions state, ending the biometric monitoring session.
 
