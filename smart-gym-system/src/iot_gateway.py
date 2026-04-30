@@ -1,4 +1,7 @@
+from flask import Blueprint, request, jsonify
 from .datatypes import SensorId, WristbandId, EnvironmentalReading, BiometricReading
+
+iot_bp = Blueprint('iot', __name__)
 
 class IoTGateway:
     """
@@ -13,3 +16,18 @@ class IoTGateway:
 
     def pollWristband(self, wristband_id: WristbandId) -> BiometricReading:
         pass
+
+@iot_bp.route('/register', methods=['POST'])
+def register_device():
+    """
+    Endpoint for IoT devices to register themselves with the gateway.
+    """
+    return jsonify({"status": "success", "message": "Device registered"})
+
+@iot_bp.route('/telemetry', methods=['POST'])
+def receive_telemetry():
+    """
+    Endpoint for IoT devices to push sensor readings.
+    """
+    data = request.json
+    return jsonify({"status": "received", "data": data})
