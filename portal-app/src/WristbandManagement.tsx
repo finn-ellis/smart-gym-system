@@ -22,7 +22,9 @@ const WristbandManagement = () => {
             });
             setStatus('Assigning wristband…');
             await portalApi.assignWristband(wristbandId.trim(), memberId.trim());
-            setStatus('Assign flow complete (UC3 steps 2–5: profile update, assign, route to pairWristband).');
+            setStatus(
+                'Session started (UC3 steps 2–8: profile update, assign, pairWristband, thresholds, IoT poll loop).',
+            );
         } catch (e) {
             setStatus(null);
             setError(e instanceof Error ? e.message : 'Request failed');
@@ -33,9 +35,9 @@ const WristbandManagement = () => {
         <div style={{ maxWidth: 560 }}>
             <h1>Wristband Management</h1>
             <p>
-                UC3 steps 2–5 · Staff use wristband assigning: optional <code>updateMemberProfile</code>, then{' '}
-                <code>assignWristband</code>; the portal handler calls <code>pairWristband</code> (no monitoring /
-                hardware ingestion in this slice).
+                UC3 · Staff use wristband assigning: optional <code>updateMemberProfile</code>, then{' '}
+                <code>assignWristband</code>. The backend loads personalized thresholds and starts continuous{' '}
+                <code>pollWristband</code> (simulated hardware via IoT Gateway).
             </p>
             <section style={{ display: 'grid', gap: '0.75rem', marginTop: '1.25rem' }}>
                 <label>
