@@ -1,15 +1,13 @@
-from .datatypes import WristbandId, MemberId, CustomizedHealthThresholds
+from __future__ import annotations
+
+from .datatypes import MemberId, WristbandId
+
 
 class WristbandHandler:
     """
-    Utilizes APIs from IoT Gateway to read from biometric wristbands and log the data to the Data & Analytics Engine.
+    UC3 steps 6+ (session state, thresholds, IoT polling) are out of scope here.
+    Step 5 only: invoked by the Gym Management Portal Handler after assignWristband.
     """
-    def __init__(self) -> None:
-        self.activeSessions = {}
-        self.memberThresholds = {}
 
     def pairWristband(self, wristband_id: WristbandId, member_id: MemberId) -> None:
-        pass
-
-    def unpairWristband(self, wristband_id: WristbandId) -> None:
         pass
