@@ -109,6 +109,26 @@ def assignWristband():
     return jsonify({"ok": True, "wristband_id": wristband_id, "member_id": member_id})
 
 
+@portal_bp.route("/wristbands/return", methods=["POST"])
+def onWristbandReturned():
+    """UC3 deassignment: stop biometric monitoring for a returned wristband."""
+    try:
+        body = _require_json_object()
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    wristband_id = body.get("wristband_id")
+    if not isinstance(wristband_id, str) or not wristband_id.strip():
+        return jsonify({"error": "wristband_id is required"}), 400
+
+    wristband_id = wristband_id.strip()
+
+    if not wristband_handler.unpairWristband(wristband_id):
+        return jsonify({"error": "wristband not in an active session"}), 404
+
+    return jsonify({"ok": True, "wristband_id": wristband_id})
+
+
 # WebSocket Events
 @socketio.on("subscribeGymState")
 def subscribeGymState():

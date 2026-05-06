@@ -31,13 +31,28 @@ const WristbandManagement = () => {
         }
     }
 
+    async function endSession() {
+        setError(null);
+        setStatus('Ending session…');
+        try {
+            await portalApi.onWristbandReturned(wristbandId.trim());
+            setStatus(
+                'Session ended (UC3 steps 1–4: staff deregistration, onWristbandReturned, unpairWristband, activeSessions cleared, monitoring stopped).',
+            );
+        } catch (e) {
+            setStatus(null);
+            setError(e instanceof Error ? e.message : 'Request failed');
+        }
+    }
+
     return (
         <div style={{ maxWidth: 560 }}>
             <h1>Wristband Management</h1>
             <p>
                 UC3 · Staff use wristband assigning: optional <code>updateMemberProfile</code>, then{' '}
                 <code>assignWristband</code>. The backend loads personalized thresholds and starts continuous{' '}
-                <code>pollWristband</code> (simulated hardware via IoT Gateway).
+                <code>pollWristband</code> (simulated hardware via IoT Gateway). When the member returns the band, use{' '}
+                <code>onWristbandReturned</code> to end the session.
             </p>
             <section style={{ display: 'grid', gap: '0.75rem', marginTop: '1.25rem' }}>
                 <label>
@@ -91,6 +106,9 @@ const WristbandManagement = () => {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button type="button" onClick={assignSession}>
                         Save profile &amp; assign wristband
+                    </button>
+                    <button type="button" onClick={endSession}>
+                        Return wristband / end session
                     </button>
                 </div>
             </section>
