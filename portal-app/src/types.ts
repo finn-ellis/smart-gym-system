@@ -52,8 +52,10 @@ export interface ReportInfo { }
 
 export interface MemberProfile {
     member_id: MemberId;
-    display_name: string;
-    notes: string;
+    name: string;
+    age: number;
+    weight_kg: number;
+    medical_history: string;
     thresholds: CustomizedHealthThresholds;
 }
 

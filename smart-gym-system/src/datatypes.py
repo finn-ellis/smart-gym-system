@@ -56,8 +56,22 @@ class Report:
 class ReportInfo:
     pass
 
+@dataclass(frozen=True)
+class CustomizedHealthThresholds:
+    heart_rate_max: float = 180.0
+    heart_rate_min: float = 40.0
+    temperature_max: float = 38.0
+    temperature_min: float = 35.0
+
+
+@dataclass
 class MemberProfile:
-    pass
+    member_id: MemberId
+    name: str = ""
+    age: int = 0
+    weight_kg: float = 0.0
+    medical_history: str = ""
+    thresholds: CustomizedHealthThresholds = CustomizedHealthThresholds()
 
 class VideoClip:
     pass
@@ -68,9 +82,3 @@ class OccupancyCountsByZone:
 class MetricsLoad:
     pass
 
-@dataclass(frozen=True)
-class CustomizedHealthThresholds:
-    heart_rate_max: float = 180.0
-    heart_rate_min: float = 40.0
-    temperature_max: float = 38.0
-    temperature_min: float = 35.0

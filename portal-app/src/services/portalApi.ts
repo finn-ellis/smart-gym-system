@@ -76,6 +76,23 @@ export async function getGymStates(): Promise<GymState[]> {
 }
 
 /**
+ * GET /members
+ */
+export async function listMembers(): Promise<{ member_ids: MemberId[] }> {
+    return request<{ member_ids: MemberId[] }>('/members');
+}
+
+/**
+ * POST /members
+ */
+export async function registerMember(profileData: Partial<MemberProfile>): Promise<{ ok: boolean; profile: MemberProfile }> {
+    return request<{ ok: boolean; profile: MemberProfile }>('/members', {
+        method: 'POST',
+        body: JSON.stringify(profileData),
+    });
+}
+
+/**
  * GET /members/<member_id>
  */
 export async function getMemberProfile(memberId: MemberId): Promise<MemberProfile> {
@@ -92,6 +109,15 @@ export async function updateMemberProfile(
     return request<{ ok: boolean; profile: MemberProfile }>(`/members/${memberId}`, {
         method: 'PATCH',
         body: JSON.stringify(profileData),
+    });
+}
+
+/**
+ * DELETE /members/<member_id>
+ */
+export async function removeMember(memberId: MemberId): Promise<{ ok: boolean }> {
+    return request<{ ok: boolean }>(`/members/${memberId}`, {
+        method: 'DELETE',
     });
 }
 
