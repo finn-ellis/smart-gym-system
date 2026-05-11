@@ -105,14 +105,22 @@ export async function getVideoClip(clipId: VideoClipId): Promise<VideoClip> {
 /**
  * POST /wristbands/assign
  * Expects wristband_id and member_id in payload.
+ * Optional ip_address and serial_number for BrainFlow/EmotiBit connectivity.
  */
 export async function assignWristband(
     wristbandId: WristbandId,
     memberId: MemberId,
+    ipAddress?: string,
+    serialNumber?: string,
 ): Promise<{ ok: boolean; wristband_id: WristbandId; member_id: MemberId }> {
     return request<{ ok: boolean; wristband_id: WristbandId; member_id: MemberId }>('/wristbands/assign', {
         method: 'POST',
-        body: JSON.stringify({ wristband_id: wristbandId, member_id: memberId }),
+        body: JSON.stringify({
+            wristband_id: wristbandId,
+            member_id: memberId,
+            ip_address: ipAddress,
+            serial_number: serialNumber,
+        }),
     });
 }
 

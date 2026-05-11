@@ -18,11 +18,13 @@ def create_app() -> Flask:
     from .data_stores import MemberHealthProfiles
     from .iot_gateway import IoTGateway, create_iot_blueprint
     from .wristband_handler import WristbandHandler
+    from .data_analytics_engine import DataAnalyticsEngine
     from .gym_management_portal_handler import create_portal_blueprint
     
     member_health_profiles = MemberHealthProfiles()
     iot_gateway = IoTGateway()
-    wristband_handler = WristbandHandler(member_health_profiles, iot_gateway)
+    analytics_engine = DataAnalyticsEngine()
+    wristband_handler = WristbandHandler(member_health_profiles, iot_gateway, analytics_engine)
     
     # Register Blueprints
     app.register_blueprint(create_portal_blueprint(member_health_profiles, wristband_handler, socketio), url_prefix='/api')

@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
 
 # Identifiers
 SensorId = str
@@ -35,8 +36,13 @@ class AirQualityReading:
 class EnvironmentalReading:
     pass
 
+@dataclass(frozen=True)
 class BiometricReading:
-    pass
+    wristband_id: WristbandId
+    heart_rate: float
+    ppg: List[float]
+    eda: float
+    temperature: float
 
 class GymState:
     pass
@@ -62,5 +68,9 @@ class OccupancyCountsByZone:
 class MetricsLoad:
     pass
 
+@dataclass(frozen=True)
 class CustomizedHealthThresholds:
-    pass
+    heart_rate_max: float = 180.0
+    heart_rate_min: float = 40.0
+    temperature_max: float = 38.0
+    temperature_min: float = 35.0

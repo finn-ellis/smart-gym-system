@@ -34,7 +34,13 @@ export interface AirQualityReading { }
 
 export interface EnvironmentalReading { }
 
-export interface BiometricReading { }
+export interface BiometricReading {
+    wristband_id: WristbandId;
+    heart_rate: number;
+    ppg: number[];
+    eda: number;
+    temperature: number;
+}
 
 export interface GymState { }
 
@@ -44,7 +50,12 @@ export interface Report { }
 
 export interface ReportInfo { }
 
-export interface MemberProfile { }
+export interface MemberProfile {
+    member_id: MemberId;
+    display_name: string;
+    notes: string;
+    thresholds: CustomizedHealthThresholds;
+}
 
 export interface VideoClip { }
 
@@ -52,4 +63,9 @@ export interface OccupancyCountsByZone { }
 
 export interface MetricsLoad { }
 
-export interface CustomizedHealthThresholds { }
+export interface CustomizedHealthThresholds {
+    heart_rate_max?: number;
+    heart_rate_min?: number;
+    temperature_max?: number;
+    temperature_min?: number;
+}

@@ -1,0 +1,17 @@
+{
+    "name": "sync-portal-api",
+    "trigger": {
+        "type": "FileContentChange",
+        "patterns": [
+            "smart-gym-system/src/gym_management_portal_handler.py",
+            "smart-gym-system/src/datatypes.py"
+        ],
+        "events": [
+            "FileEdit"
+        ]
+    },
+    "action": {
+        "type": "InjectContext",
+        "content": "You are currently editing backend files (`smart-gym-system/src/gym_management_portal_handler.py` or `smart-gym-system/src/datatypes.py`). Changing these files may affect the frontend API client. Once you have finished your backend changes, you MUST check if `portal-app/src/services/portalApi.ts` or `portal-app/src/types.ts` need corresponding updates to remain in sync with the backend routes and data structures."
+    }
+}

@@ -4,6 +4,8 @@ import * as portalApi from './services/portalApi';
 const WristbandManagement = () => {
     const [memberId, setMemberId] = useState('member-001');
     const [wristbandId, setWristbandId] = useState('wb-demo-001');
+    const [ipAddress, setIpAddress] = useState('');
+    const [serialNumber, setSerialNumber] = useState('');
     const [maxHeartRateBpm, setMaxHeartRateBpm] = useState('170');
     const [notes, setNotes] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -18,10 +20,15 @@ const WristbandManagement = () => {
             await portalApi.updateMemberProfile(memberId.trim(), {
                 ...(displayName.trim() ? { display_name: displayName.trim() } : {}),
                 ...(notes.trim() ? { notes: notes.trim() } : {}),
-                ...(!Number.isNaN(hr) ? { thresholds: { max_heart_rate_bpm: hr } } : {}),
+                ...(!Number.isNaN(hr) ? { thresholds: { heart_rate_max: hr } } : {}),
             });
             setStatus('Assigning wristband…');
-            await portalApi.assignWristband(wristbandId.trim(), memberId.trim());
+            await portalApi.assignWristband(
+                wristbandId.trim(),
+                memberId.trim(),
+                ipAddress.trim(),
+                serialNumber.trim(),
+            );
             setStatus(
                 'Session started (UC3 steps 2–8: profile update, assign, pairWristband, thresholds, IoT poll loop).',
             );
@@ -73,6 +80,27 @@ const WristbandManagement = () => {
                         style={{ width: '100%', display: 'block', marginTop: 4 }}
                     />
                 </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <label style={{ flex: 1 }}>
+                        IP Address (Optional)
+                        <input
+                            type="text"
+                            value={ipAddress}
+                            placeholder="e.g. 192.168.1.255"
+                            onChange={(e) => setIpAddress(e.target.value)}
+                            style={{ width: '100%', display: 'block', marginTop: 4 }}
+                        />
+                    </label>
+                    <label style={{ flex: 1 }}>
+                        Serial Number (Optional)
+                        <input
+                            type="text"
+                            value={serialNumber}
+                            onChange={(e) => setSerialNumber(e.target.value)}
+                            style={{ width: '100%', display: 'block', marginTop: 4 }}
+                        />
+                    </label>
+                </div>
                 <label>
                     Personalized max heart rate (bpm) — optional threshold for this profile
                     <input
