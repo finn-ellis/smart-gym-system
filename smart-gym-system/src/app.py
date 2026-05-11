@@ -14,12 +14,19 @@ def create_app() -> Flask:
     # Initialize extensions
     socketio.init_app(app)
     
-    # Register Blueprints
-    from .gym_management_portal_handler import portal_bp
-    from .iot_gateway import iot_bp
+    # Initialize core services
+    from .data_stores import MemberHealthProfiles
+    from .iot_gateway import IoTGateway, create_iot_blueprint
+    from .wristband_handler import WristbandHandler
+    from .gym_management_portal_handler import create_portal_blueprint
     
-    app.register_blueprint(portal_bp, url_prefix='/api')
-    app.register_blueprint(iot_bp, url_prefix='/iot')
+    member_health_profiles = MemberHealthProfiles()
+    iot_gateway = IoTGateway()
+    wristband_handler = WristbandHandler(member_health_profiles, iot_gateway)
+    
+    # Register Blueprints
+    app.register_blueprint(create_portal_blueprint(member_health_profiles, wristband_handler, socketio), url_prefix='/api')
+    app.register_blueprint(create_iot_blueprint(iot_gateway), url_prefix='/iot')
     
     return app
 
