@@ -17,8 +17,6 @@
 > **Requirements:**
 > - Use a strict TODO to keep on track with these changes
 
-<<<<<<< HEAD
-
 ## Fixing Frontend
 ```md
 Implement a client-side `portalApi.ts` file with a request method for each route defined in #file:gym_management_portal_handler.py . 
@@ -140,12 +138,3 @@ Think extensively through files and only use Brainflow in the backend for proces
 ```
 Great, next, ensure changes are reflected in the frontend and that both #file:portalApi.ts and #file:WristbandManagement.tsx validly interact with the backend wristband implementation
 ```
-=======
-5. Created `data_store_buildout.prompt.md`
-
-> Verified the SAD component tables, Data Stores section, and Use Cases 1, 3,
-> 4, 5, and 6. Locked the outputs of the first two data-store prompts so later
-> backend route, frontend integration, and documentation prompts can depend on
-> stable model fields, store method names, demo data expectations, and JSON
-> serialization behavior.
->>>>>>> 6a2e864 (.md)

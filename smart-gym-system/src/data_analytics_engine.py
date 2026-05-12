@@ -1,34 +1,176 @@
+from __future__ import annotations
+
+from dataclasses import asdict, replace
+from enum import Enum
+import threading
+import time
 from typing import Optional
-from .datatypes import AlertSeverity, AlertId, SensorId, WristbandId, VideoClipId, OccupancyCountsByZone, EnvironmentalReading, BiometricReading, GymState
-from .app import socketio
+
+from flask_socketio import SocketIO
+
+from .data_stores import AlertLog, GymStatesArchive
+from .datatypes import (
+    AlertId,
+    AlertInfo,
+    AlertSeverity,
+    BiometricReading,
+    EnvironmentalReading,
+    GymState,
+    OccupancyCountsByZone,
+    VideoClipId,
+)
+
+
+def _jsonable(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if hasattr(value, "__dataclass_fields__"):
+        return {key: _jsonable(item) for key, item in asdict(value).items()}
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    return value
+
 
 class DataAnalyticsEngine:
     """
     Synthesizes data from the various handlers into the Gym State, Data Stores, and Report Generation Handler.
     Responsible for most data processing and mutation in the system.
     """
-    def __init__(self) -> None:
-        self.gym_state: Optional[GymState] = None
+    _SNAPSHOT_INTERVAL_SECONDS = 300
+
+    def __init__(
+        self,
+        gym_states_archive: GymStatesArchive,
+        alert_log: AlertLog,
+        socketio: Optional[SocketIO] = None,
+    ) -> None:
+        self._gym_states_archive = gym_states_archive
+        self._alert_log = alert_log
+        self._socketio = socketio
+        self._lock = threading.Lock()
+        self._alert_counter = 0
+        self.gym_state: GymState = GymState(timestamp=time.time())
+        self._snapshot_thread = threading.Thread(
+            target=self._snapshot_loop,
+            name="gym-state-archive-snapshot",
+            daemon=True,
+        )
+        self._snapshot_thread.start()
 
     def broadcastGymState(self) -> None:
         """
         Broadcasts the current gym state to all connected client apps via WebSocket.
         """
-        if self.gym_state:
-            # In a real implementation, we would serialize gym_state here
-            socketio.emit('gymStateUpdate', {'state': 'serialized_gym_state'})
+        if self._socketio is not None:
+            self._socketio.emit("gymStateUpdate", _jsonable(self.gym_state))
 
     def onSensorProcess(self, reading: EnvironmentalReading, severity: AlertSeverity) -> None:
-        pass
+        alert = self._build_alert(
+            severity,
+            "Environmental sensor alert",
+            {
+                "type": "environmental",
+                "reading": reading,
+                "sensor_id": reading.sensor_id,
+                "zone_id": reading.zone_id,
+            },
+        )
+        self._alert_log.add_alert(alert)
+        with self._lock:
+            air_quality = dict(self.gym_state.air_quality)
+            zone_key = reading.zone_id or reading.sensor_id or "unknown"
+            air_quality[zone_key] = reading.air_quality
+            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                air_quality=air_quality,
+                active_alert_ids=active_alert_ids,
+            )
+        self.broadcastGymState()
 
     def onBiometricAlert(self, reading: BiometricReading, severity: AlertSeverity) -> None:
-        pass
+        alert = self._build_alert(
+            severity,
+            "Biometric threshold alert",
+            {
+                "type": "biometric",
+                "reading": reading,
+                "wristband_id": reading.wristband_id,
+            },
+        )
+        self._alert_log.add_alert(alert)
+        with self._lock:
+            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                active_alert_ids=active_alert_ids,
+            )
+        self.broadcastGymState()
 
     def onVideoAlert(self, severity: AlertSeverity, clip_id: VideoClipId) -> None:
-        pass
+        alert = self._build_alert(
+            severity,
+            "Video safety alert",
+            {"type": "video", "clip_id": clip_id},
+        )
+        self._alert_log.add_alert(alert)
+        with self._lock:
+            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                active_alert_ids=active_alert_ids,
+            )
+        self.broadcastGymState()
 
     def onOccupancyCounted(self, counts: OccupancyCountsByZone) -> None:
-        pass
+        with self._lock:
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                occupancy_counts=dict(counts.counts),
+            )
+        self.broadcastGymState()
 
     def dismissAlert(self, alert_id: AlertId) -> None:
-        pass
+        self._alert_log.dismiss_alert(alert_id)
+        with self._lock:
+            active_alert_ids = [
+                current_id
+                for current_id in self.gym_state.active_alert_ids
+                if current_id != alert_id
+            ]
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                active_alert_ids=active_alert_ids,
+            )
+        self.broadcastGymState()
+
+    def _build_alert(
+        self,
+        severity: AlertSeverity,
+        message: str,
+        metadata: dict[str, object],
+    ) -> AlertInfo:
+        with self._lock:
+            self._alert_counter += 1
+            alert_id = f"alert-{time.time_ns()}-{self._alert_counter}"
+        return AlertInfo(
+            alert_id=alert_id,
+            severity=severity,
+            message=message,
+            timestamp=time.time(),
+            metadata=metadata,
+        )
+
+    def _snapshot_loop(self) -> None:
+        while True:
+            time.sleep(self._SNAPSHOT_INTERVAL_SECONDS)
+            with self._lock:
+                snapshot = replace(self.gym_state, timestamp=time.time())
+            self._gym_states_archive.append(snapshot)
