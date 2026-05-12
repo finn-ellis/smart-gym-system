@@ -76,6 +76,13 @@ export async function getGymStates(): Promise<GymState[]> {
 }
 
 /**
+ * GET /wristbands/available
+ */
+export async function listAvailableWristbands(): Promise<Array<{ board_id: number; name: string; description: string }>> {
+    return request<Array<{ board_id: number; name: string; description: string }>>('/wristbands/available');
+}
+
+/**
  * GET /members
  */
 export async function listMembers(): Promise<{ member_ids: MemberId[] }> {

@@ -1,0 +1,14 @@
+V1.0 {
+    global:
+        DotNetRuntimeDebugHeader;
+        InitEmotiBit;
+        UpdateEmotiBit;
+        ConnectEmotiBit;
+        IsConnected;
+        DisconnectEmotiBit;
+        GetDiscoveredDevices;
+        GetScalarData;
+        FreeString;
+        GetBatteryLevel;
+    local: *;
+};

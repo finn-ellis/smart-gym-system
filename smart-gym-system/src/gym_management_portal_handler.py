@@ -67,6 +67,12 @@ def create_portal_blueprint(
     def getGymStates():
         pass
 
+    @portal_bp.route("/wristbands/available", methods=["GET"])
+    def listAvailableBoards():
+        """Lists boards discovered by the IoT Gateway via BrainFlow."""
+        boards = handler.wristband_handler.list_available_hardware()
+        return jsonify(boards)
+
     @portal_bp.route("/members", methods=["GET"])
     def listMembers():
         member_ids = handler.member_health_profiles.list_member_ids()

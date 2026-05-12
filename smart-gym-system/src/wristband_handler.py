@@ -30,6 +30,10 @@ class WristbandHandler:
         self._monitor_threads: dict[WristbandId, threading.Thread] = {}
         self._monitor_stops: dict[WristbandId, threading.Event] = {}
 
+    def list_available_hardware(self) -> list[dict]:
+        """Queries the IoT Gateway for autodiscovered hardware boards."""
+        return self._iot.discover_available_boards()
+
     def pairWristband(self, wristband_id: WristbandId, member_id: MemberId, ip_address: str = "", serial_number: str = "") -> None:
         profile = self._profiles.get_profile(member_id)
         if profile is None:

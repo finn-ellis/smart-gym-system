@@ -4,6 +4,7 @@ import * as portalApi from './services/portalApi';
 const WristbandManagement = () => {
     const [memberId, setMemberId] = useState('member-001');
     const [wristbandId, setWristbandId] = useState('wb-demo-001');
+    const [availableBoards, setAvailableBoards] = useState<Array<{ board_id: number; name: string; description: string }>>([]);
     const [ipAddress, setIpAddress] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
     const [maxHeartRateBpm, setMaxHeartRateBpm] = useState('170');
@@ -11,6 +12,17 @@ const WristbandManagement = () => {
     const [displayName, setDisplayName] = useState('');
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    async function scanForBoards() {
+        setStatus('Scanning for boards…');
+        try {
+            const boards = await portalApi.listAvailableWristbands();
+            setAvailableBoards(boards);
+            setStatus(`Found ${boards.length} board(s).`);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Scan failed');
+        }
+    }
 
     async function assignSession() {
         setError(null);
@@ -62,6 +74,20 @@ const WristbandManagement = () => {
                 <code>onWristbandReturned</code> to end the session.
             </p>
             <section style={{ display: 'grid', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <div style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: 4 }}>
+                    <button type="button" onClick={scanForBoards} style={{ marginBottom: '0.5rem' }}>
+                        Scan for BrainFlow Boards
+                    </button>
+                    {availableBoards.length > 0 && (
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+                            {availableBoards.map((b, i) => (
+                                <li key={i}>
+                                    {b.name} ({b.description}) - ID: {b.board_id}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
                 <label>
                     Member ID
                     <input

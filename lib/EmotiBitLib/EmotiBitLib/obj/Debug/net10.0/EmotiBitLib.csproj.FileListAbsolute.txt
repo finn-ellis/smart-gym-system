@@ -1,0 +1,12 @@
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.GeneratedMSBuildEditorConfig.editorconfig
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.AssemblyInfoInputs.cache
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.AssemblyInfo.cs
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.csproj.CoreCompileInputs.cache
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.sourcelink.json
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/bin/Debug/net10.0/EmotiBitLib.deps.json
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/bin/Debug/net10.0/EmotiBitLib.dll
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/bin/Debug/net10.0/EmotiBitLib.pdb
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.dll
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/refint/EmotiBitLib.dll
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/EmotiBitLib.pdb
+/home/fellis/Code/SmartGymSystem/lib/EmotiBitLib/EmotiBitLib/obj/Debug/net10.0/ref/EmotiBitLib.dll
