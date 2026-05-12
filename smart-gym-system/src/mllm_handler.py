@@ -120,7 +120,8 @@ class MLLMHandler:
                 video_file = client.files.get(name=video_file.name)
 
             response = client.models.generate_content(
-                model="gemini-3.1-pro-preview",
+                # model="gemini-3.1-pro-preview",
+                model="gemini-3.1-flash-lite",
                 contents=[_GEMINI_ANALYSIS_PROMPT, video_file],
                 config={"response_mime_type": "application/json", "response_schema": VideoAnalysisVerdict.model_json_schema()}
             )
