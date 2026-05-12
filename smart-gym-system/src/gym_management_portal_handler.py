@@ -1,13 +1,34 @@
 from dataclasses import asdict
+from enum import Enum
+from typing import Optional
 import threading
 import time
 
 from flask import Blueprint, jsonify, request
 from flask_socketio import SocketIO
 
-from .data_stores import MemberHealthProfiles
+from .data_analytics_engine import DataAnalyticsEngine
+from .data_stores import (
+    AlertLog,
+    GymStatesArchive,
+    MemberHealthProfiles,
+    ReportsArchive,
+    VideoClipsArchive,
+)
 from .wristband_handler import WristbandHandler
-from .datatypes import AlertId, MemberId, ReportId, VideoClipId, MemberProfile
+from .datatypes import AlertId, MemberId, ReportId, VideoClipId
+
+
+def _jsonable(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if hasattr(value, "__dataclass_fields__"):
+        return {key: _jsonable(item) for key, item in asdict(value).items()}
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    return value
 
 
 class GymManagementPortalHandler:
@@ -19,10 +40,20 @@ class GymManagementPortalHandler:
     def __init__(
         self,
         member_health_profiles: MemberHealthProfiles,
+        alert_log: AlertLog,
+        reports_archive: ReportsArchive,
+        gym_states_archive: GymStatesArchive,
+        video_clips_archive: VideoClipsArchive,
+        analytics_engine: DataAnalyticsEngine,
         wristband_handler: WristbandHandler,
         socketio: SocketIO,
     ) -> None:
         self.member_health_profiles = member_health_profiles
+        self.alert_log = alert_log
+        self.reports_archive = reports_archive
+        self.gym_states_archive = gym_states_archive
+        self.video_clips_archive = video_clips_archive
+        self.analytics_engine = analytics_engine
         self.wristband_handler = wristband_handler
         self.socketio = socketio
         self.web_socket_connections: list[object] = []
@@ -40,12 +71,24 @@ class GymManagementPortalHandler:
 
 def create_portal_blueprint(
     member_health_profiles: MemberHealthProfiles,
+    alert_log: AlertLog,
+    reports_archive: ReportsArchive,
+    gym_states_archive: GymStatesArchive,
+    video_clips_archive: VideoClipsArchive,
+    analytics_engine: DataAnalyticsEngine,
     wristband_handler: WristbandHandler,
     socketio: SocketIO,
 ) -> Blueprint:
     portal_bp = Blueprint("portal", __name__)
     handler = GymManagementPortalHandler(
-        member_health_profiles, wristband_handler, socketio
+        member_health_profiles,
+        alert_log,
+        reports_archive,
+        gym_states_archive,
+        video_clips_archive,
+        analytics_engine,
+        wristband_handler,
+        socketio,
     )
 
     def _require_json_object() -> dict:
@@ -54,72 +97,80 @@ def create_portal_blueprint(
             raise ValueError("expected JSON body with an object")
         return body
 
+    def _optional_float(name: str) -> Optional[float]:
+        value = request.args.get(name)
+        if value is None or value == "":
+            return None
+        return float(value)
+
+    def _limit(default: int) -> int:
+        value = request.args.get("limit")
+        if value is None or value == "":
+            return default
+        return int(value)
+
     # REST Endpoints
     @portal_bp.route("/alerts", methods=["GET"])
     def getAlerts():
-        pass
+        try:
+            alerts = handler.alert_log.get_alerts(
+                start=_optional_float("start"),
+                end=_optional_float("end"),
+                limit=_limit(100),
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(_jsonable(alerts))
 
     @portal_bp.route("/alerts/<alert_id>", methods=["GET"])
     def viewAlert(alert_id: AlertId):
-        pass
+        try:
+            return jsonify(_jsonable(handler.alert_log.get_alert(alert_id)))
+        except KeyError:
+            return jsonify({"error": "alert not found"}), 404
 
     @portal_bp.route("/alerts/<alert_id>/dismiss", methods=["POST"])
     def dismissAlert(alert_id: AlertId):
-        pass
+        try:
+            handler.analytics_engine.dismissAlert(alert_id)
+        except KeyError:
+            return jsonify({"error": "alert not found"}), 404
+        return jsonify({"ok": True})
 
     @portal_bp.route("/reports", methods=["GET"])
     def getReports():
-        pass
+        try:
+            reports = handler.reports_archive.list_reports(limit=_limit(50))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(_jsonable(reports))
 
     @portal_bp.route("/reports/<report_id>", methods=["GET"])
     def viewReport(report_id: ReportId):
-        pass
+        try:
+            return jsonify(_jsonable(handler.reports_archive.get_report(report_id)))
+        except KeyError:
+            return jsonify({"error": "report not found"}), 404
 
     @portal_bp.route("/gym_states", methods=["GET"])
     def getGymStates():
-        pass
-
-    @portal_bp.route("/wristbands/available", methods=["GET"])
-    def listAvailableBoards():
-        """Lists boards discovered by the IoT Gateway via BrainFlow."""
-        boards = handler.wristband_handler.list_available_hardware()
-        return jsonify(boards)
-
-    @portal_bp.route("/members", methods=["GET"])
-    def listMembers():
-        member_ids = handler.member_health_profiles.list_member_ids()
-        return jsonify({"member_ids": member_ids})
-
-    @portal_bp.route("/members", methods=["POST"])
-    def registerMember():
         try:
-            body = _require_json_object()
+            start = _optional_float("start")
+            end = _optional_float("end")
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
-        
-        member_id = body.get("member_id")
-        if not member_id:
-            return jsonify({"error": "member_id is required"}), 400
-        
-        if handler.member_health_profiles.get_profile(member_id):
-            return jsonify({"error": "member already exists"}), 400
-
-        profile = MemberProfile(
-            member_id=member_id,
-            name=body.get("name", ""),
-            age=body.get("age", 0),
-            weight_kg=body.get("weight_kg", 0.0),
-            medical_history=body.get("medical_history", "")
-        )
-        handler.member_health_profiles.add_profile(profile)
-        return jsonify({"ok": True, "profile": asdict(profile)}), 201
+        if start is None or end is None:
+            latest = handler.gym_states_archive.get_latest()
+            return jsonify(_jsonable([] if latest is None else [latest]))
+        return jsonify(_jsonable(handler.gym_states_archive.get_range(start, end)))
 
     @portal_bp.route("/members/<member_id>", methods=["GET"])
     def getMemberProfile(member_id: MemberId):
-        profile = handler.member_health_profiles.get_profile(member_id)
-        if profile is None:
+        try:
+            profile = handler.member_health_profiles.get_profile(member_id)
+        except KeyError:
             return jsonify({"error": "member not found"}), 404
-        return jsonify(asdict(profile))
+        return jsonify(_jsonable(profile))
 
     @portal_bp.route("/members/<member_id>", methods=["PUT", "PATCH"])
     def updateMemberProfile(member_id: MemberId):
@@ -127,18 +178,18 @@ def create_portal_blueprint(
             body = _require_json_object()
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
-        profile = handler.member_health_profiles.update_profile(member_id, body)
-        return jsonify({"ok": True, "profile": asdict(profile)})
-
-    @portal_bp.route("/members/<member_id>", methods=["DELETE"])
-    def removeMember(member_id: MemberId):
-        if handler.member_health_profiles.remove_profile(member_id):
-            return jsonify({"ok": True})
-        return jsonify({"error": "member not found"}), 404
+        try:
+            profile = handler.member_health_profiles.update_profile(member_id, body)
+        except KeyError:
+            return jsonify({"error": "member not found"}), 404
+        return jsonify({"ok": True, "profile": _jsonable(profile)})
 
     @portal_bp.route("/videos/<clip_id>", methods=["GET"])
     def getVideoClip(clip_id: VideoClipId):
-        pass
+        try:
+            return jsonify(_jsonable(handler.video_clips_archive.get_clip(clip_id)))
+        except KeyError:
+            return jsonify({"error": "video clip not found"}), 404
 
     @portal_bp.route("/wristbands/assign", methods=["POST"])
     def assignWristband():
@@ -192,29 +243,6 @@ def create_portal_blueprint(
     # WebSocket Events
     @socketio.on("subscribeGymState")
     def subscribeGymState():
-        pass
+        handler.socketio.emit("gymStateUpdate", _jsonable(handler.analytics_engine.gym_state))
 
-    @socketio.on("subscribeWristbands")
-    def subscribeWristbands():
-        """
-        Sends the current active wristband sessions immediately upon subscription
-        and can be used to set up a periodic broadcast loop.
-        """
-        # We can do this either by spawning a background task or just returning the immediate state.
-        # For simplicity, we just return the initial state. The system could broadcast specific events
-        # whenever a wristband is assigned/returned, or a background loop could send it periodically.
-        _broadcast_wristbands()
-        # Also send available boards immediately on subscribe
-        boards = handler.wristband_handler.list_available_hardware()
-        socketio.emit("available_boards_update", boards)
-
-    def _broadcast_wristbands():
-        sessions = handler.wristband_handler.active_sessions
-        # Convert to list of dicts for safety
-        payload = [{"wristband_id": wid, "member_id": mid} for wid, mid in sessions.items()]
-        socketio.emit("wristbands_update", {"active_sessions": payload})
-        
-    # Hook into assignment/return to broadcast the state change
-    # (Notice: in a fully decoupled architecture, wristband_handler might emit an event using a bus)
-    
     return portal_bp

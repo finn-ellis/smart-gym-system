@@ -1,6 +1,6 @@
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 # Identifiers
 SensorId = str
@@ -27,14 +27,29 @@ class StatusLevel(Enum):
     WARNING = "Warning"
     CRITICAL = "Critical"
 
+
+# The SAD defines these handler payloads at an architectural level. These
+# minimal dataclasses keep the demo implementation typed without committing to
+# hardware-specific schemas before the CS460 sensor integrations are complete.
+@dataclass(frozen=True)
 class ThresholdConfig:
-    pass
+    limits: Dict[str, float] = field(default_factory=dict)
 
+
+@dataclass(frozen=True)
 class AirQualityReading:
-    pass
+    sensor_id: SensorId = ""
+    zone_id: ZoneId = ""
+    timestamp: float = 0.0
+    metrics: Dict[str, float] = field(default_factory=dict)
 
+
+@dataclass(frozen=True)
 class EnvironmentalReading:
-    pass
+    sensor_id: SensorId = ""
+    zone_id: ZoneId = ""
+    timestamp: float = 0.0
+    air_quality: AirQualityReading = field(default_factory=AirQualityReading)
 
 @dataclass(frozen=True)
 class BiometricReading:
@@ -44,18 +59,6 @@ class BiometricReading:
     eda: float
     temperature: float
 
-class GymState:
-    pass
-
-class AlertInfo:
-    pass
-
-class Report:
-    pass
-
-class ReportInfo:
-    pass
-
 @dataclass(frozen=True)
 class CustomizedHealthThresholds:
     heart_rate_max: float = 180.0
@@ -64,21 +67,66 @@ class CustomizedHealthThresholds:
     temperature_min: float = 35.0
 
 
-@dataclass
+# The SAD names these persisted objects but leaves their exact schemas open.
+# These minimal dataclasses provide the IDs/timestamps needed by the archives.
+@dataclass(frozen=True)
+class GymState:
+    timestamp: float = 0.0
+    air_quality: Dict[ZoneId, Any] = field(default_factory=dict)
+    occupancy_counts: Dict[ZoneId, int] = field(default_factory=dict)
+    active_alert_ids: List[AlertId] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class AlertInfo:
+    alert_id: AlertId
+    severity: AlertSeverity = AlertSeverity.INFORMATIONAL
+    message: str = ""
+    timestamp: float = 0.0
+    dismissed: bool = False
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class Report:
+    report_id: ReportId
+    report_type: Optional[ReportType] = None
+    title: str = ""
+    created_at: float = 0.0
+    data: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ReportInfo:
+    report_id: ReportId = ""
+    report_type: Optional[ReportType] = None
+    title: str = ""
+    created_at: float = 0.0
+
+@dataclass(frozen=True)
 class MemberProfile:
     member_id: MemberId
-    name: str = ""
-    age: int = 0
-    weight_kg: float = 0.0
-    medical_history: str = ""
-    thresholds: CustomizedHealthThresholds = CustomizedHealthThresholds()
+    display_name: str = ""
+    notes: str = ""
+    thresholds: CustomizedHealthThresholds = field(
+        default_factory=CustomizedHealthThresholds
+    )
 
+@dataclass(frozen=True)
 class VideoClip:
-    pass
+    clip_id: VideoClipId
+    created_at: float = 0.0
+    uri: str = ""
+    content_type: str = "video/mp4"
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
+
+@dataclass(frozen=True)
 class OccupancyCountsByZone:
-    pass
+    counts: Dict[ZoneId, int] = field(default_factory=dict)
 
+
+@dataclass(frozen=True)
 class MetricsLoad:
-    pass
-
+    timestamp: float = 0.0
+    metrics: Dict[str, Any] = field(default_factory=dict)

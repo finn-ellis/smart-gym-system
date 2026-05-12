@@ -28,6 +28,31 @@ These instructions apply to files under `portal-app/`.
 - When adding API or data-fetching helpers, prefer a focused `src/services/` or
   `src/utils/` module.
 
+## Backend Data Store API
+
+The frontend never imports, instantiates, or mirrors backend data stores
+directly. Portal data access goes through REST APIs exposed by the Flask backend
+and typed wrappers in `src/services/portalApi.ts`.
+
+| Backend route | Backend store/component | Frontend wrapper |
+| --- | --- | --- |
+| `GET /api/alerts` | `AlertLog.get_alerts` | `getAlerts()` |
+| `GET /api/alerts/<alert_id>` | `AlertLog.get_alert` | `viewAlert(alertId)` |
+| `POST /api/alerts/<alert_id>/dismiss` | `DataAnalyticsEngine.dismissAlert` and `AlertLog.dismiss_alert` | `dismissAlert(alertId)` |
+| `GET /api/reports` | `ReportsArchive.list_reports` | `getReports()` |
+| `GET /api/reports/<report_id>` | `ReportsArchive.get_report` | `viewReport(reportId)` |
+| `GET /api/gym_states` | `GymStatesArchive.get_latest` / `get_range` | `getGymStates()` |
+| `GET /api/members/<member_id>` | `MemberHealthProfiles.get_profile` | `getMemberProfile(memberId)` |
+| `PUT/PATCH /api/members/<member_id>` | `MemberHealthProfiles.update_profile` | `updateMemberProfile(memberId, profileData)` |
+| `GET /api/videos/<clip_id>` | `VideoClipsArchive.get_clip` | `getVideoClip(clipId)` |
+| `POST /api/wristbands/assign` | `WristbandHandler.pairWristband` | `assignWristband(...)` |
+| `POST /api/wristbands/return` | `WristbandHandler.unpairWristband` | `onWristbandReturned(wristbandId)` |
+
+Before adding a new fetch call, check `src/services/portalApi.ts` and the
+backend portal routes for an existing route/wrapper pair. Reuse or extend the
+existing wrapper when practical instead of creating duplicate fetch logic in a
+component.
+
 ## Style
 
 - Use the existing styling approach unless the project deliberately adopts
