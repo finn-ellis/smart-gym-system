@@ -35,14 +35,14 @@ def create_app() -> Flask:
         [
             MemberProfile(
                 member_id="member-001",
-                display_name="Demo Member One",
-                notes="Default UC3 demo profile.",
+                name="Demo Member One",
+                medical_history="Default UC3 demo profile.",
                 thresholds=CustomizedHealthThresholds(heart_rate_max=170.0),
             ),
             MemberProfile(
                 member_id="member-002",
-                display_name="Demo Member Two",
-                notes="Higher-risk demo profile with tighter monitoring thresholds.",
+                name="Demo Member Two",
+                medical_history="Higher-risk demo profile with tighter monitoring thresholds.",
                 thresholds=CustomizedHealthThresholds(
                     heart_rate_max=155.0,
                     temperature_max=37.5,

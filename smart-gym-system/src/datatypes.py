@@ -106,8 +106,10 @@ class ReportInfo:
 @dataclass(frozen=True)
 class MemberProfile:
     member_id: MemberId
-    display_name: str = ""
-    notes: str = ""
+    name: str = ""
+    age: int = 0
+    weight_kg: float = 0.0
+    medical_history: str = ""
     thresholds: CustomizedHealthThresholds = field(
         default_factory=CustomizedHealthThresholds
     )

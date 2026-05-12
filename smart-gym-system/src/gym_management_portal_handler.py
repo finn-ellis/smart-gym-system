@@ -164,6 +164,45 @@ def create_portal_blueprint(
             return jsonify(_jsonable([] if latest is None else [latest]))
         return jsonify(_jsonable(handler.gym_states_archive.get_range(start, end)))
 
+    @portal_bp.route("/wristbands/available", methods=["GET"])
+    def listAvailableBoards():
+        """Lists boards discovered by the IoT Gateway."""
+        boards = handler.wristband_handler.list_available_hardware()
+        return jsonify(boards)
+
+    @portal_bp.route("/members", methods=["GET"])
+    def listMembers():
+        member_ids = handler.member_health_profiles.list_member_ids()
+        return jsonify({"member_ids": member_ids})
+
+    @portal_bp.route("/members", methods=["POST"])
+    def registerMember():
+        from .datatypes import MemberProfile
+        try:
+            body = _require_json_object()
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        
+        member_id = body.get("member_id")
+        if not member_id:
+            return jsonify({"error": "member_id is required"}), 400
+        
+        try:
+            if handler.member_health_profiles.get_profile(member_id):
+                return jsonify({"error": "member already exists"}), 400
+        except KeyError:
+            pass
+
+        profile = MemberProfile(
+            member_id=member_id,
+            name=body.get("name", ""),
+            age=body.get("age", 0),
+            weight_kg=body.get("weight_kg", 0.0),
+            medical_history=body.get("medical_history", "")
+        )
+        handler.member_health_profiles.add_profile(profile)
+        return jsonify({"ok": True, "profile": _jsonable(profile)}), 201
+
     @portal_bp.route("/members/<member_id>", methods=["GET"])
     def getMemberProfile(member_id: MemberId):
         try:
@@ -183,6 +222,12 @@ def create_portal_blueprint(
         except KeyError:
             return jsonify({"error": "member not found"}), 404
         return jsonify({"ok": True, "profile": _jsonable(profile)})
+
+    @portal_bp.route("/members/<member_id>", methods=["DELETE"])
+    def removeMember(member_id: MemberId):
+        if handler.member_health_profiles.remove_profile(member_id):
+            return jsonify({"ok": True})
+        return jsonify({"error": "member not found"}), 404
 
     @portal_bp.route("/videos/<clip_id>", methods=["GET"])
     def getVideoClip(clip_id: VideoClipId):

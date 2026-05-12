@@ -101,6 +101,24 @@ class MemberHealthProfiles:
         with self._lock:
             return list(self._profiles.values())
 
+    def list_member_ids(self) -> list[MemberId]:
+        """List member IDs for the SAD Member Health Profiles data store."""
+        with self._lock:
+            return list(self._profiles.keys())
+
+    def add_profile(self, profile: MemberProfile) -> None:
+        """Add a profile to the SAD Member Health Profiles data store."""
+        with self._lock:
+            self._profiles[profile.member_id] = profile
+
+    def remove_profile(self, member_id: MemberId) -> bool:
+        """Remove a profile from the SAD Member Health Profiles data store."""
+        with self._lock:
+            if member_id in self._profiles:
+                del self._profiles[member_id]
+                return True
+            return False
+
     def _merge_thresholds(
         self,
         current: CustomizedHealthThresholds,
