@@ -42,13 +42,36 @@ export interface BiometricReading {
     temperature: number;
 }
 
-export interface GymState { }
+export interface GymState {
+    timestamp: number;
+    air_quality: Record<ZoneId, unknown>;
+    occupancy_counts: Record<ZoneId, number>;
+    active_alert_ids: AlertId[];
+}
 
-export interface AlertInfo { }
+export interface AlertInfo {
+    alert_id: AlertId;
+    severity: AlertSeverity;
+    message: string;
+    timestamp: number;
+    dismissed: boolean;
+    metadata: Record<string, unknown>;
+}
 
-export interface Report { }
+export interface Report {
+    report_id: ReportId;
+    report_type?: ReportType;
+    title: string;
+    created_at: number;
+    data: Record<string, unknown>;
+}
 
-export interface ReportInfo { }
+export interface ReportInfo {
+    report_id: ReportId;
+    report_type?: ReportType;
+    title: string;
+    created_at: number;
+}
 
 export interface MemberProfile {
     member_id: MemberId;
@@ -71,3 +94,4 @@ export interface CustomizedHealthThresholds {
     temperature_max?: number;
     temperature_min?: number;
 }
+
