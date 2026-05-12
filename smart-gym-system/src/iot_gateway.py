@@ -56,12 +56,12 @@ class IoTGateway:
 
         # Keep a stub device for fallback/UI display if no real ones found during testing
         if not available:
-            print("[Discovery] No real EmotiBit devices found. Providing stub.")
-            available.append({
-                "board_id": 1, 
-                "name": "EmotiBit HW Stub", 
-                "description": "Fallback Device (Real EmotiBit not found)"
-            })
+            print("[Discovery] No EmotiBit devices found.")
+            # available.append({
+            #     "board_id": 1, 
+            #     "name": "EmotiBit HW Stub", 
+            #     "description": "Fallback Device (Real EmotiBit not found)"
+            # })
         
         return available
 

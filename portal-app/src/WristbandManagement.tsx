@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import * as portalApi from './services/portalApi';
+import { MemberProfile } from './types';
 
 type ActiveSession = { wristband_id: string; member_id: string };
 
 const WristbandManagement = () => {
+    const [members, setMembers] = useState<string[]>([]);
+    const [memberProfiles, setMemberProfiles] = useState<Record<string, MemberProfile>>({});
+    
     const [memberId, setMemberId] = useState('member-001');
     const [wristbandId, setWristbandId] = useState('wb-demo-001');
     const [availableBoards, setAvailableBoards] = useState<Array<{ board_id: number; name: string; description: string }>>([]);
@@ -14,10 +18,30 @@ const WristbandManagement = () => {
     const [maxHeartRateBpm, setMaxHeartRateBpm] = useState('170');
     const [notes, setNotes] = useState('');
     const [displayName, setDisplayName] = useState('');
+    const [age, setAge] = useState('30');
+    const [weightKg, setWeightKg] = useState('70');
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+    const refreshMembers = async () => {
+        try {
+            const { member_ids } = await portalApi.listMembers();
+            setMembers(member_ids);
+            
+            const profiles: Record<string, MemberProfile> = {};
+            for (const mid of member_ids) {
+                const profile = await portalApi.getMemberProfile(mid);
+                profiles[mid] = profile;
+            }
+            setMemberProfiles(profiles);
+        } catch (e) {
+            console.error("Failed to refresh members", e);
+        }
+    };
+
     useEffect(() => {
+        refreshMembers();
+
         const socket: Socket = io('/', { path: '/socket.io' }); // Assumes same-origin / proxied socket
 
         socket.on('connect', () => {
@@ -44,10 +68,11 @@ const WristbandManagement = () => {
         try {
             const hr = Number.parseFloat(maxHeartRateBpm);
             await portalApi.updateMemberProfile(memberId.trim(), {
-                ...(displayName.trim() ? { display_name: displayName.trim() } : {}),
-                ...(notes.trim() ? { notes: notes.trim() } : {}),
+                ...(displayName.trim() ? { name: displayName.trim() } : {}),
+                ...(notes.trim() ? { medical_history: notes.trim() } : {}),
                 ...(!Number.isNaN(hr) ? { thresholds: { heart_rate_max: hr } } : {}),
             });
+            await refreshMembers();
             setStatus('Assigning wristband…');
             await portalApi.assignWristband(
                 wristbandId.trim(),
@@ -61,6 +86,41 @@ const WristbandManagement = () => {
         } catch (e) {
             setStatus(null);
             setError(e instanceof Error ? e.message : 'Request failed');
+        }
+    }
+
+    async function registerNewMember() {
+        setError(null);
+        setStatus('Registering new member…');
+        try {
+            const newMemberId = `member-${Date.now().toString().slice(-4)}`;
+            await portalApi.registerMember({
+                member_id: newMemberId,
+                name: displayName.trim() || 'New Member',
+                age: Number.parseInt(age, 10) || 30,
+                weight_kg: Number.parseFloat(weightKg) || 70.0,
+                medical_history: notes.trim() || '',
+            });
+            await refreshMembers();
+            setMemberId(newMemberId);
+            setStatus(`Registered new member: ${newMemberId}`);
+        } catch (e) {
+            setStatus(null);
+            setError(e instanceof Error ? e.message : 'Registration failed');
+        }
+    }
+
+    async function removeCurrentMember() {
+        setError(null);
+        setStatus('Removing member…');
+        try {
+            await portalApi.removeMember(memberId.trim());
+            await refreshMembers();
+            setStatus(`Removed member: ${memberId}`);
+            setMemberId('');
+        } catch (e) {
+            setStatus(null);
+            setError(e instanceof Error ? e.message : 'Removal failed');
         }
     }
 
@@ -120,13 +180,42 @@ const WristbandManagement = () => {
 
                 <label>
                     Member ID
+                    <select
+                        value={memberId}
+                        onChange={(e) => {
+                            const newId = e.target.value;
+                            setMemberId(newId);
+                            if (memberProfiles[newId]) {
+                                setDisplayName(memberProfiles[newId].name || '');
+                                setNotes(memberProfiles[newId].medical_history || '');
+                                setAge(memberProfiles[newId].age.toString());
+                                setWeightKg(memberProfiles[newId].weight_kg.toString());
+                                if (memberProfiles[newId].thresholds?.heart_rate_max) {
+                                    setMaxHeartRateBpm(memberProfiles[newId].thresholds.heart_rate_max.toString());
+                                }
+                            }
+                        }}
+                        style={{ width: '100%', display: 'block', marginTop: 4, padding: '0.25rem' }}
+                    >
+                        <option value="">Select a member...</option>
+                        {members.map(mid => (
+                            <option key={mid} value={mid}>
+                                {mid} {memberProfiles[mid] ? `(${memberProfiles[mid].name})` : ''}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <input
                         type="text"
                         value={memberId}
                         onChange={(e) => setMemberId(e.target.value)}
-                        style={{ width: '100%', display: 'block', marginTop: 4 }}
+                        placeholder="Manual Member ID edit..."
+                        style={{ flex: 1, padding: '0.25rem' }}
                     />
-                </label>
+                    <button type="button" onClick={registerNewMember} style={{ padding: '0.25rem 0.5rem' }}>Add New</button>
+                    <button type="button" onClick={removeCurrentMember} style={{ padding: '0.25rem 0.5rem', backgroundColor: '#d9534f', color: 'white', border: 'none', borderRadius: 3 }}>Remove</button>
+                </div>
                 <label>
                     Wristband ID
                     <input

@@ -245,4 +245,16 @@ def create_portal_blueprint(
     def subscribeGymState():
         handler.socketio.emit("gymStateUpdate", _jsonable(handler.analytics_engine.gym_state))
 
+    @socketio.on("subscribeWristbands")
+    def subscribeWristbands():
+        _broadcast_wristbands()
+        # Also broadcast available boards immediately on subscribe
+        boards = handler.wristband_handler.list_available_hardware()
+        socketio.emit("available_boards_update", boards)
+
+    def _broadcast_wristbands():
+        sessions = handler.wristband_handler.active_sessions
+        payload = [{"wristband_id": wid, "member_id": mid} for wid, mid in sessions.items()]
+        socketio.emit("wristbands_update", {"active_sessions": payload})
+
     return portal_bp

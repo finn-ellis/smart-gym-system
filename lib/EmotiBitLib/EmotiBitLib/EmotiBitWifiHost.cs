@@ -70,6 +70,7 @@ namespace EmotiBit
         private ushort controlPort;
 
         private List<string> availableNetworks = new List<string>();
+        private List<IPAddress> broadcastAddresses = new List<IPAddress>();
         private List<string> emotibitNetworks = new List<string>();
 
         private Dictionary<string, EmotibitInfo> _discoveredEmotibits = new Dictionary<string, EmotibitInfo>();
@@ -189,6 +190,7 @@ namespace EmotiBit
         {
             var currentAvailableNetworks = new List<string>(availableNetworks);
             availableNetworks.Clear(); // Clear the list to rebuild it with fresh data
+            broadcastAddresses.Clear();
 
             try
             {
@@ -228,6 +230,16 @@ namespace EmotiBit
                             if (!availableNetworks.Contains(network) && IsInNetworkIncludeList(network) && !IsInNetworkExcludeList(network))
                             {
                                 availableNetworks.Add(network);
+
+                                // Calculate proper broadcast address based on subnet mask
+                                byte[] ipBytes = addr.Address.GetAddressBytes();
+                                byte[] maskBytes = addr.IPv4Mask?.GetAddressBytes() ?? new byte[] { 255, 255, 255, 0 };
+                                byte[] broadcastBytes = new byte[4];
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    broadcastBytes[i] = (byte)(ipBytes[i] | ~maskBytes[i]);
+                                }
+                                broadcastAddresses.Add(new IPAddress(broadcastBytes));
                             }
                         }
                     }
@@ -313,16 +325,41 @@ namespace EmotiBit
 
             if (_wifiHostSettings.EnableBroadcast)
             {
-                foreach (var network in availableNetworks)
+                for (int i = 0; i < availableNetworks.Count; i++)
                 {
                     try
                     {
-                        IPEndPoint broadcastEndPoint = new IPEndPoint(IPAddress.Parse(network + ".255"), advertisingPort);
+                        var network = availableNetworks[i];
+                        
+                        // 1. Try sending to the proper subnet broadcast (essential for /28 subnet like hotspots)
+                        IPEndPoint broadcastEndPoint = new IPEndPoint(broadcastAddresses[i], advertisingPort);
                         advertisingCxn.Send(data, data.Length, broadcastEndPoint);
+
+                        // 2. Fallback to naive global broadcast
+                        IPEndPoint globalBroadcastEndPoint = new IPEndPoint(IPAddress.Broadcast, advertisingPort);
+                        advertisingCxn.Send(data, data.Length, globalBroadcastEndPoint);
                     }
                     catch (Exception e)
                     {
-                        Debug.LogWarning($"Broadcast failed for {network}.*: {e.Message}");
+                        Debug.LogWarning($"Broadcast failed for {availableNetworks[i]}.*: {e.Message}");
+                    }
+                }
+            }
+            
+            // iPhone hotspots frequently DROP all UDP broadcasts to clients. Unicast scanning is required.
+            if (_wifiHostSettings.EnableUnicast)
+            {
+                foreach (var network in availableNetworks)
+                {
+                    // Scan the configured range (default 2 to 254)
+                    for (int i = _wifiHostSettings.UnicastIpRange.Item1; i <= _wifiHostSettings.UnicastIpRange.Item2; i++)
+                    {
+                        try
+                        {
+                            IPEndPoint unicastEndPoint = new IPEndPoint(IPAddress.Parse($"{network}.{i}"), advertisingPort);
+                            advertisingCxn.Send(data, data.Length, unicastEndPoint);
+                        }
+                        catch { }
                     }
                 }
             }
