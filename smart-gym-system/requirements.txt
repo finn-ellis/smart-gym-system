@@ -2,3 +2,5 @@ ruff
 flask
 flask-socketio
 brainflow
+google-genai
+pydantic

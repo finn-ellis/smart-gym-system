@@ -248,3 +248,192 @@ Update prompts/data_store_buildout.prompt.md by appending a Result section summa
 
 Re-read all documentation and verify consistency with the SAD and source code.
 ```
+
+## Implementing video monitoring
+```md
+## ARCHITECTURE DESCRIPTION
+### Use Case 1: Critical Safety Event Detection {#use-case-1:-critical-safety-event-detection}
+
+| Field | Detail |
+| ----: | :---- |
+| **Goal in Context** | To rapidly identify a member in physical distress and receive a verifiable alert so staff can respond immediately in person. |
+| **Preconditions** | Cameras are active and cover all functional gym zones. At least one staff member is on duty with the portal app open on their device. |
+| **Trigger** | A gym member experiences a physical emergency (such as a fall) within a monitored zone. |
+
+**Architecture Design Flow**
+
+1. **Camera** feed observes the member falling to the floor.  
+2. **MLLM Handler** sends an incremental clip to **Gemini 3.1 Pro** which returns a response flagging the clip as a critical injury alert.  
+3. **MLLM Handler** routes the alert to the **Data & Analytics Engine** via a call to onVideoAlert.  
+4. **Data & Analytics Engine** packages the alert and adds it to the **Alert Log** and as a current alert in the **Gym State**.  
+5. The **Gym Management Portal App** receives the push notification via native device push notification API. Staff devices show the critical alert.  
+6. Staff opens the alert in the **Gym Management Portal App** which loads the alert data with a call to the **Gym Management Portal Handler’s** viewAlert. The app also makes a call to retrieve the associated video clip from the **Video Clips Archive**. It uses this data to render and display the alert to the user with the attached video clip.  
+7. Staff handle the alert and dismiss it. The **Gym Management Portal App** calls **Gym Management Portal Handler’s** dismissAlert.  
+8. **Gym Management Portal Handler** removes the alert from the current **Gym State** by calling **Data & Analytics Engine’s** dismissAlert.
+
+## USER-FACING USER CASE
+### **Use Case 1: Critical Safety Event Detection** {#use-case-1:-critical-safety-event-detection}
+
+**Capabilities Represented:** Critical Safety Event Detection
+
+| Field | Detail |
+| ----: | :---- |
+| **Primary Actor** | On-Duty Staff |
+| **Secondary Actors** | Gym Member, Facility-Mounted Cameras |
+| **Goal in Context** | To rapidly identify a member in physical distress and receive a verifiable alert so staff can respond immediately in person. |
+| **Preconditions** | Cameras are active and cover all functional gym zones. At least one staff member is on duty with the portal app open on their device. |
+| **Trigger** | A gym member experiences a physical emergency (such as a fall) within a monitored zone. |
+
+**Scenario:**
+
+1. A member is exercising in the free-weight zone and falls to the floor.  
+2. Staff on duty receive an immediate Critical push notification on their devices flagging the incident, with a short video clip of the event attached for review.  
+3. Staff view the video clip to confirm what occurred before physically responding.  
+4. Upon confirmation, staff proceed directly to the free-weight zone to assist the member or call emergency services as needed.  
+5. The event and staff response are logged in the system for record-keeping.
+
+**Exceptions:**
+
+* *False positive (e.g., a dropped weight misread as a fall):* Staff view the attached clip, determine no emergency occurred, and dismiss the alert in the app.  
+* *No staff acknowledge the alert within a defined timeout:* The alert is automatically escalated to Gym Management.  
+* *Camera view is partially obstructed:* If the affected member is wearing a biometric wristband and has opted in, any abnormal physiological readings from the device are factored into the alert to help staff assess the situation.  
+* *Staff are repeatedly receiving false Critical alerts from a specific zone:* Staff may temporarily suppress camera-based monitoring for that zone in the app until the source of the false positives is resolved.
+
+| Field | Detail |
+| ----: | :---- |
+| **Frequency of Use** | Rare / Occasional;  triggered only during emergencies |
+| **Channel to Actor** | Gym Management Portal App (push notification) |
+
+---
+
+## INSTRUCTIONS
+- Based on this use case description and architecture description, implement a feature in the demo that:
+1. Allow the user to record a short video clip on the frontend UI
+2. Upload the short video clip to the backend server
+3. Invoke the Gemini API to analyze the video for either no alert, or an incident alert.
+4. Produce the alert using the existing system methods #sym:onVideoAlert 
+```
+
+## Revising API Usage
+```md
+## GEMINI API CODE SNIPPETS
+```python
+from google import genai
+from google.genai import types
+
+import requests
+
+client = genai.Client()
+
+# This is a manual, two turn multimodal function calling workflow:
+
+# 1. Define the function tool
+get_image_declaration = types.FunctionDeclaration(
+  name="get_image",
+  description="Retrieves the image file reference for a specific order item.",
+  parameters={
+      "type": "object",
+      "properties": {
+          "item_name": {
+              "type": "string",
+              "description": "The name or description of the item ordered (e.g., 'instrument')."
+          }
+      },
+      "required": ["item_name"],
+  },
+)
+tool_config = types.Tool(function_declarations=[get_image_declaration])
+
+# 2. Send a message that triggers the tool
+prompt = "Show me the instrument I ordered last month."
+response_1 = client.models.generate_content(
+  model="gemini-3-flash-preview",
+  contents=[prompt],
+  config=types.GenerateContentConfig(
+      tools=[tool_config],
+  )
+)
+
+# 3. Handle the function call
+function_call = response_1.function_calls[0]
+requested_item = function_call.args["item_name"]
+print(f"Model wants to call: {function_call.name}")
+
+# Execute your tool (e.g., call an API)
+# (This is a mock response for the example)
+print(f"Calling external tool for: {requested_item}")
+
+function_response_data = {
+  "image_ref": {"$ref": "instrument.jpg"},
+}
+image_path = "https://goo.gle/instrument-img"
+image_bytes = requests.get(image_path).content
+function_response_multimodal_data = types.FunctionResponsePart(
+  inline_data=types.FunctionResponseBlob(
+    mime_type="image/jpeg",
+    display_name="instrument.jpg",
+    data=image_bytes,
+  )
+)
+
+# 4. Send the tool's result back
+# Append this turn's messages to history for a final response.
+history = [
+  types.Content(role="user", parts=[types.Part(text=prompt)]),
+  response_1.candidates[0].content,
+  types.Content(
+    role="user",
+    parts=[
+        types.Part.from_function_response(
+          name=function_call.name,
+          response=function_response_data,
+          parts=[function_response_multimodal_data]
+        )
+    ],
+  )
+]
+
+response_2 = client.models.generate_content(
+  model="gemini-3-flash-preview",
+  contents=history,
+  config=types.GenerateContentConfig(
+      tools=[tool_config],
+      thinking_config=types.ThinkingConfig(include_thoughts=True)
+  ),
+)
+
+print(f"\nFinal model response: {response_2.text}")
+```
+
+```python
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, Field
+from typing import List
+
+class MatchResult(BaseModel):
+    winner: str = Field(description="The name of the winner.")
+    final_match_score: str = Field(description="The final match score.")
+    scorers: List[str] = Field(description="The name of the scorer.")
+
+client = genai.Client()
+
+response = client.models.generate_content(
+    model="gemini-3.1-pro-preview",
+    contents="Search for all details for the latest Euro.",
+    config={
+        "tools": [
+            {"google_search": {}},
+            {"url_context": {}}
+        ],
+        "response_format": {"text": {"mime_type": "application/json", "schema": MatchResult.model_json_schema()}},
+    },  
+)
+
+result = MatchResult.model_validate_json(response.text)
+print(result)
+```
+
+## TASK
+Revise Gemini API usage according to the above code snippets. Upload the video clip and have Gemini return a structured output.
+```

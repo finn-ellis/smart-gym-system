@@ -15,6 +15,7 @@ from .data_stores import (
     ReportsArchive,
     VideoClipsArchive,
 )
+from .mllm_handler import MLLMHandler
 from .wristband_handler import WristbandHandler
 from .datatypes import AlertId, AlertSeverity, MemberId, ReportId, VideoClipId
 
@@ -46,6 +47,7 @@ class GymManagementPortalHandler:
         video_clips_archive: VideoClipsArchive,
         analytics_engine: DataAnalyticsEngine,
         wristband_handler: WristbandHandler,
+        mllm_handler: MLLMHandler,
         socketio: SocketIO,
     ) -> None:
         self.member_health_profiles = member_health_profiles
@@ -55,6 +57,7 @@ class GymManagementPortalHandler:
         self.video_clips_archive = video_clips_archive
         self.analytics_engine = analytics_engine
         self.wristband_handler = wristband_handler
+        self.mllm_handler = mllm_handler
         self.socketio = socketio
         self.web_socket_connections: list[object] = []
 
@@ -77,6 +80,7 @@ def create_portal_blueprint(
     video_clips_archive: VideoClipsArchive,
     analytics_engine: DataAnalyticsEngine,
     wristband_handler: WristbandHandler,
+    mllm_handler: MLLMHandler,
     socketio: SocketIO,
 ) -> Blueprint:
     portal_bp = Blueprint("portal", __name__)
@@ -88,6 +92,7 @@ def create_portal_blueprint(
         video_clips_archive,
         analytics_engine,
         wristband_handler,
+        mllm_handler,
         socketio,
     )
 
@@ -260,6 +265,38 @@ def create_portal_blueprint(
             return jsonify(_jsonable(handler.video_clips_archive.get_clip(clip_id)))
         except KeyError:
             return jsonify({"error": "video clip not found"}), 404
+
+    @portal_bp.route("/videos/<clip_id>/stream", methods=["GET"])
+    def streamVideoClip(clip_id: VideoClipId):
+        """Serve raw video bytes for a user-uploaded clip."""
+        from flask import Response  # noqa: PLC0415
+
+        data = handler.mllm_handler.get_clip_bytes(clip_id)
+        if data is None:
+            return jsonify({"error": "video data not available"}), 404
+        try:
+            clip = handler.video_clips_archive.get_clip(clip_id)
+            content_type = clip.content_type or "video/webm"
+        except KeyError:
+            content_type = "video/webm"
+        return Response(data, content_type=content_type)
+
+    @portal_bp.route("/videos/analyze", methods=["POST"])
+    def analyzeVideo():
+        """Accept a video upload, analyze it with Gemini, and raise an alert if an incident is detected."""
+        if "video" not in request.files:
+            return jsonify({"error": "video file is required"}), 400
+
+        uploaded = request.files["video"]
+        video_bytes = uploaded.read()
+        if not video_bytes:
+            return jsonify({"error": "video file is empty"}), 400
+
+        content_type = uploaded.content_type or "video/webm"
+        zone_id = request.form.get("zone_id", "demo-zone")
+
+        result = handler.mllm_handler.analyze_uploaded_clip(video_bytes, content_type, zone_id)
+        return jsonify(result)
 
     @portal_bp.route("/wristbands/assign", methods=["POST"])
     def assignWristband():

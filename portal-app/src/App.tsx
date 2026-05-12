@@ -7,10 +7,12 @@ import GymStateDashboard from './GymStateDashboard';
 import AlertsDashboard from './AlertsDashboard';
 import MemberProfiles from './MemberProfiles';
 import WristbandManagement from './WristbandManagement';
+import VideoCapture from './VideoCapture';
 
 const NAV_ITEMS = [
     { to: '/', label: 'Gym State', icon: '⬡', subtitle: 'Live facility overview', end: true },
     { to: '/alerts', label: 'Alerts', icon: '⚠', subtitle: 'Health & facility events' },
+    { to: '/safety-check', label: 'Safety Check', icon: '📷', subtitle: 'Camera incident analysis' },
     { to: '/wristbands', label: 'Wristbands', icon: '⌚', subtitle: 'Session enrollment' },
     { to: '/members', label: 'Members', icon: '👤', subtitle: 'Health profiles' },
     { to: '/reports', label: 'Reports', icon: '📄', subtitle: 'Activity archive' },
@@ -19,6 +21,7 @@ const NAV_ITEMS = [
 const PAGE_META: Record<string, { title: string; subtitle: string; icon: string }> = {
     '/': { title: 'Gym State Dashboard', subtitle: 'Real-time and historical facility state', icon: '⬡' },
     '/alerts': { title: 'Alerts', subtitle: 'Staff notifications · UC4: Warning Health Event Detection', icon: '⚠' },
+    '/safety-check': { title: 'Safety Check', subtitle: 'Camera-based incident detection · UC1: Critical Safety Event Detection', icon: '📷' },
     '/wristbands': { title: 'Wristband Management', subtitle: 'Session enrollment & live biometric monitoring · UC3', icon: '⌚' },
     '/members': { title: 'Member Profiles', subtitle: 'Health profiles and personalized thresholds', icon: '👤' },
     '/reports': { title: 'Reports & Archive', subtitle: 'Activity archive · UC5: Facility Data Visibility', icon: '📄' },
@@ -78,6 +81,7 @@ function App() {
                 <Routes>
                     <Route path="/" element={<GymStateDashboard />} />
                     <Route path="/alerts" element={<AlertsDashboard />} />
+                    <Route path="/safety-check" element={<VideoCapture />} />
                     <Route path="/reports" element={<ReportBrowsing />} />
                     <Route path="/members" element={<MemberProfiles />} />
                     <Route path="/wristbands" element={<WristbandManagement />} />

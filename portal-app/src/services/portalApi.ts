@@ -136,6 +136,39 @@ export async function getVideoClip(clipId: VideoClipId): Promise<VideoClip> {
 }
 
 /**
+ * POST /videos/analyze
+ * Upload a video clip for Gemini-powered safety incident analysis.
+ */
+export interface VideoAnalysisResult {
+    clip_id: VideoClipId;
+    verdict: 'CRITICAL' | 'WARNING' | 'NO_INCIDENT' | 'UNAVAILABLE';
+    detail: string;
+}
+
+export async function uploadVideoForAnalysis(
+    videoBlob: Blob,
+    zoneId?: string,
+): Promise<VideoAnalysisResult> {
+    const formData = new FormData();
+    const filename = videoBlob.type.includes('mp4') ? 'clip.mp4' : 'clip.webm';
+    formData.append('video', videoBlob, filename);
+    if (zoneId) formData.append('zone_id', zoneId);
+
+    const response = await fetch(`${API_BASE_URL}/videos/analyze`, {
+        method: 'POST',
+        body: formData,
+        // Do NOT set Content-Type header — let browser set multipart/form-data with boundary.
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error((errorData as { error?: string }).error || `Request failed with status ${response.status}`);
+    }
+
+    return response.json() as Promise<VideoAnalysisResult>;
+}
+
+/**
  * POST /wristbands/assign
  * Expects wristband_id and member_id in payload.
  * Optional ip_address and serial_number for EmotiBit connectivity.

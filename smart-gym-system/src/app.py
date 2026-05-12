@@ -82,6 +82,7 @@ def create_app() -> Flask:
             video_clips_archive,
             analytics_engine,
             wristband_handler,
+            mllm_handler,
             socketio,
         ),
         url_prefix='/api',
