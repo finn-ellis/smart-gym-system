@@ -138,7 +138,7 @@ export async function getVideoClip(clipId: VideoClipId): Promise<VideoClip> {
 /**
  * POST /wristbands/assign
  * Expects wristband_id and member_id in payload.
- * Optional ip_address and serial_number for BrainFlow/EmotiBit connectivity.
+ * Optional ip_address and serial_number for EmotiBit connectivity.
  */
 export async function assignWristband(
     wristbandId: WristbandId,

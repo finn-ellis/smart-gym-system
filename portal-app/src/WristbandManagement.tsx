@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import * as portalApi from './services/portalApi';
+
+type ActiveSession = { wristband_id: string; member_id: string };
 
 const WristbandManagement = () => {
     const [memberId, setMemberId] = useState('member-001');
     const [wristbandId, setWristbandId] = useState('wb-demo-001');
     const [availableBoards, setAvailableBoards] = useState<Array<{ board_id: number; name: string; description: string }>>([]);
+    const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
     const [ipAddress, setIpAddress] = useState('');
     const [serialNumber, setSerialNumber] = useState('');
     const [maxHeartRateBpm, setMaxHeartRateBpm] = useState('170');
@@ -13,16 +17,26 @@ const WristbandManagement = () => {
     const [status, setStatus] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    async function scanForBoards() {
-        setStatus('Scanning for boards…');
-        try {
-            const boards = await portalApi.listAvailableWristbands();
-            setAvailableBoards(boards);
-            setStatus(`Found ${boards.length} board(s).`);
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Scan failed');
-        }
-    }
+    useEffect(() => {
+        const socket: Socket = io('/', { path: '/socket.io' }); // Assumes same-origin / proxied socket
+
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket for wristbands');
+            socket.emit('subscribeWristbands');
+        });
+
+        socket.on('wristbands_update', (data: { active_sessions: ActiveSession[] }) => {
+            setActiveSessions(data.active_sessions || []);
+        });
+
+        socket.on('available_boards_update', (boards: Array<{ board_id: number; name: string; description: string }>) => {
+            setAvailableBoards(boards || []);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, []);
 
     async function assignSession() {
         setError(null);
@@ -75,19 +89,35 @@ const WristbandManagement = () => {
             </p>
             <section style={{ display: 'grid', gap: '0.75rem', marginTop: '1.25rem' }}>
                 <div style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: 4 }}>
-                    <button type="button" onClick={scanForBoards} style={{ marginBottom: '0.5rem' }}>
-                        Scan for BrainFlow Boards
-                    </button>
-                    {availableBoards.length > 0 && (
-                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+                    <strong>Detected Wristbands:</strong>
+                    {availableBoards.length > 0 ? (
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', marginTop: '0.5rem' }}>
                             {availableBoards.map((b, i) => (
-                                <li key={i}>
+                                <li key={i} style={{ cursor: 'pointer', color: '#007bff' }} onClick={() => setWristbandId(b.name)}>
                                     {b.name} ({b.description}) - ID: {b.board_id}
                                 </li>
                             ))}
                         </ul>
+                    ) : (
+                        <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>No boards detected yet. Status will update automatically.</div>
                     )}
                 </div>
+
+                <div style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: 4 }}>
+                    <strong>Active Sessions (Live):</strong>
+                    {activeSessions.length > 0 ? (
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+                            {activeSessions.map((s, i) => (
+                                <li key={i}>
+                                    Wristband: {s.wristband_id} | Member: {s.member_id}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>No active wristbands.</div>
+                    )}
+                </div>
+
                 <label>
                     Member ID
                     <input

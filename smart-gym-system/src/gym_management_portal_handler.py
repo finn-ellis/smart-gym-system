@@ -1,4 +1,6 @@
 from dataclasses import asdict
+import threading
+import time
 
 from flask import Blueprint, jsonify, request
 from flask_socketio import SocketIO
@@ -24,6 +26,16 @@ class GymManagementPortalHandler:
         self.wristband_handler = wristband_handler
         self.socketio = socketio
         self.web_socket_connections: list[object] = []
+
+        self._scan_thread = threading.Thread(target=self._scan_boards_loop, daemon=True)
+        self._scan_thread.start()
+
+    def _scan_boards_loop(self):
+        while True:
+            # Poll for available boards periodically
+            boards = self.wristband_handler.list_available_hardware()
+            self.socketio.emit("available_boards_update", boards)
+            time.sleep(5.0)
 
 
 def create_portal_blueprint(
@@ -153,6 +165,7 @@ def create_portal_blueprint(
             return jsonify({"error": "member not found"}), 404
 
         handler.wristband_handler.pairWristband(wristband_id, member_id, ip_address, serial_number)
+        _broadcast_wristbands()
 
         return jsonify({"ok": True, "wristband_id": wristband_id, "member_id": member_id})
 
@@ -173,6 +186,7 @@ def create_portal_blueprint(
         if not handler.wristband_handler.unpairWristband(wristband_id):
             return jsonify({"error": "wristband not in an active session"}), 404
 
+        _broadcast_wristbands()
         return jsonify({"ok": True, "wristband_id": wristband_id})
 
     # WebSocket Events
@@ -180,4 +194,27 @@ def create_portal_blueprint(
     def subscribeGymState():
         pass
 
+    @socketio.on("subscribeWristbands")
+    def subscribeWristbands():
+        """
+        Sends the current active wristband sessions immediately upon subscription
+        and can be used to set up a periodic broadcast loop.
+        """
+        # We can do this either by spawning a background task or just returning the immediate state.
+        # For simplicity, we just return the initial state. The system could broadcast specific events
+        # whenever a wristband is assigned/returned, or a background loop could send it periodically.
+        _broadcast_wristbands()
+        # Also send available boards immediately on subscribe
+        boards = handler.wristband_handler.list_available_hardware()
+        socketio.emit("available_boards_update", boards)
+
+    def _broadcast_wristbands():
+        sessions = handler.wristband_handler.active_sessions
+        # Convert to list of dicts for safety
+        payload = [{"wristband_id": wid, "member_id": mid} for wid, mid in sessions.items()]
+        socketio.emit("wristbands_update", {"active_sessions": payload})
+        
+    # Hook into assignment/return to broadcast the state change
+    # (Notice: in a fully decoupled architecture, wristband_handler might emit an event using a bus)
+    
     return portal_bp

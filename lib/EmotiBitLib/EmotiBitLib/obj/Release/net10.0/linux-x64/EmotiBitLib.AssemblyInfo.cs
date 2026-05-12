@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EmotiBitLib")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3347814fff40ae8edf8decf8a4cbc853124849f3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0f6250f593f74ef9eec33f7aa965966619584445")]
 [assembly: System.Reflection.AssemblyProductAttribute("EmotiBitLib")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EmotiBitLib")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

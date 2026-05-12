@@ -4,11 +4,9 @@ V1.0 {
         InitEmotiBit;
         UpdateEmotiBit;
         ConnectEmotiBit;
-        IsConnected;
         DisconnectEmotiBit;
-        GetDiscoveredDevices;
-        GetScalarData;
-        FreeString;
+        IsConnected;
+        GetDiscoveredDevicesList;
         GetBatteryLevel;
     local: *;
 };

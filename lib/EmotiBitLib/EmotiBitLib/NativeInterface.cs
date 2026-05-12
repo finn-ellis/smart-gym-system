@@ -33,40 +33,28 @@ namespace EmotiBitLib
             }
         }
 
-        [UnmanagedCallersOnly(EntryPoint = "IsConnected")]
-        public static bool IsConnected()
-        {
-            return _manager?.IsConnected() ?? false;
-        }
-
         [UnmanagedCallersOnly(EntryPoint = "DisconnectEmotiBit")]
         public static void DisconnectEmotiBit()
         {
             _manager?.Disconnect();
         }
 
-        [UnmanagedCallersOnly(EntryPoint = "GetDiscoveredDevices")]
-        public static IntPtr GetDiscoveredDevices()
+        [UnmanagedCallersOnly(EntryPoint = "IsConnected")]
+        public static bool IsConnected()
+        {
+            return _manager?.IsConnected() ?? false;
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetDiscoveredDevicesList")]
+        public static IntPtr GetDiscoveredDevicesList()
         {
             if (_manager == null) return Marshal.StringToCoTaskMemAnsi("");
-            var devices = string.Join(",", _manager.DiscoveredDevices.Keys);
-            return Marshal.StringToCoTaskMemAnsi(devices);
-        }
-
-        [UnmanagedCallersOnly(EntryPoint = "GetScalarData")]
-        public static double GetScalarData(int dataTypeIndex)
-        {
-            return _manager?.GetScalarData((DataTypes)dataTypeIndex) ?? 0.0;
-        }
-
-        [UnmanagedCallersOnly(EntryPoint = "FreeString")]
-        public static void FreeString(IntPtr ptr)
-        {
-            Marshal.FreeCoTaskMem(ptr);
+            var list = new System.Collections.Generic.List<string>(_manager.DiscoveredDevices.Keys);
+            string result = string.Join(",", list);
+            return Marshal.StringToCoTaskMemAnsi(result);
         }
 
         [UnmanagedCallersOnly(EntryPoint = "GetBatteryLevel")]
-
         public static IntPtr GetBatteryLevel()
         {
             string level = _manager?.BatteryLevel ?? "?";
