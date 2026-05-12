@@ -15,8 +15,6 @@ const WristbandManagement = () => {
     const [wristbandId, setWristbandId] = useState('wb-demo-001');
     const [availableBoards, setAvailableBoards] = useState<Array<{ board_id: number; name: string; description: string }>>([]);
     const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
-    const [ipAddress, setIpAddress] = useState('');
-    const [serialNumber, setSerialNumber] = useState('');
     const [maxHeartRateBpm, setMaxHeartRateBpm] = useState('170');
     const [notes, setNotes] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -97,8 +95,6 @@ const WristbandManagement = () => {
             await portalApi.assignWristband(
                 wristbandId.trim(),
                 memberId.trim(),
-                ipAddress.trim(),
-                serialNumber.trim(),
             );
             setStatus('Session started — wristband is active and monitoring heart rate.');
         } catch (e) {
@@ -349,7 +345,7 @@ const WristbandManagement = () => {
                             {/* Step 4: Device */}
                             <div>
                                 <div className="section-label">4 · Issue Device</div>
-                                <div className="form-grid form-grid-2">
+                                <div className="form-grid">
                                     <div className="form-group">
                                         <label className="form-label">Wristband ID</label>
                                         <input
@@ -357,23 +353,6 @@ const WristbandManagement = () => {
                                             value={wristbandId}
                                             onChange={e => setWristbandId(e.target.value)}
                                             placeholder="wb-demo-001"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">IP Address (optional)</label>
-                                        <input
-                                            className="form-control"
-                                            value={ipAddress}
-                                            onChange={e => setIpAddress(e.target.value)}
-                                            placeholder="192.168.1.255"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Serial Number (optional)</label>
-                                        <input
-                                            className="form-control"
-                                            value={serialNumber}
-                                            onChange={e => setSerialNumber(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -398,7 +377,7 @@ const WristbandManagement = () => {
                             </div>
 
                             {status && <div className="status-msg success">{status}</div>}
-                            {error  && <div className="status-msg error">{error}</div>}
+                            {error && <div className="status-msg error">{error}</div>}
                         </div>
                     </div>
                 </div>

@@ -69,10 +69,10 @@ class IoTGateway:
         
         return available
 
-    def register_wristband(self, wristband_id: WristbandId, ip_address: str = "", serial_number: str = "") -> None:
+    def register_wristband(self, wristband_id: WristbandId) -> None:
         if wristband_id not in self.connectedWristbands:
             self.connectedWristbands.append(wristband_id)
-            print(f"[Registration] Registering wristband: {wristband_id} (IP: {ip_address}, SN: {serial_number})")
+            print(f"[Registration] Registering wristband: {wristband_id}")
             
         if self._emotibit_lib:
             try:

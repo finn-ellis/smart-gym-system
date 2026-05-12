@@ -300,7 +300,7 @@ def create_portal_blueprint(
 
     @portal_bp.route("/wristbands/assign", methods=["POST"])
     def assignWristband():
-        """Expects wristband_id, member_id, and optional ip_address/serial_number in payload."""
+        """Expects wristband_id and member_id in payload."""
         try:
             body = _require_json_object()
         except ValueError as e:
@@ -308,8 +308,6 @@ def create_portal_blueprint(
 
         wristband_id = body.get("wristband_id")
         member_id = body.get("member_id")
-        ip_address = body.get("ip_address", "")
-        serial_number = body.get("serial_number", "")
 
         if not isinstance(wristband_id, str) or not wristband_id.strip():
             return jsonify({"error": "wristband_id is required"}), 400
@@ -322,7 +320,7 @@ def create_portal_blueprint(
         if handler.member_health_profiles.get_profile(member_id) is None:
             return jsonify({"error": "member not found"}), 404
 
-        handler.wristband_handler.pairWristband(wristband_id, member_id, ip_address, serial_number)
+        handler.wristband_handler.pairWristband(wristband_id, member_id)
         _broadcast_wristbands()
 
         return jsonify({"ok": True, "wristband_id": wristband_id, "member_id": member_id})

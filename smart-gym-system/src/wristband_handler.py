@@ -43,12 +43,12 @@ class WristbandHandler:
         """Queries the IoT Gateway for autodiscovered hardware boards."""
         return self._iot.discover_available_boards()
 
-    def pairWristband(self, wristband_id: WristbandId, member_id: MemberId, ip_address: str = "", serial_number: str = "") -> None:
+    def pairWristband(self, wristband_id: WristbandId, member_id: MemberId) -> None:
         profile = self._profiles.get_profile(member_id)
         if profile is None:
             return
 
-        self._iot.register_wristband(wristband_id, ip_address, serial_number)
+        self._iot.register_wristband(wristband_id)
         self._stop_monitor(wristband_id)
 
         with self._lock:
