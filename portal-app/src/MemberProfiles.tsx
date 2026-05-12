@@ -136,6 +136,11 @@ const MemberProfiles = () => {
                                             {p.member_id}
                                             {p.age ? ` · ${p.age} yrs` : ''}
                                         </div>
+                                        {(p.thresholds?.heart_rate_max != null || p.thresholds?.heart_rate_min != null) && (
+                                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                                ♥ HR: {p.thresholds?.heart_rate_min ?? '—'}–{p.thresholds?.heart_rate_max ?? '—'} bpm
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <button

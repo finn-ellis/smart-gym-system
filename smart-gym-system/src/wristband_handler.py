@@ -8,6 +8,13 @@ from .datatypes import BiometricReading, CustomizedHealthThresholds, MemberId, W
 from .iot_gateway import IoTGateway
 from .data_analytics_engine import DataAnalyticsEngine
 
+# Alert state sentinel values — only emit an alert when the state transitions,
+# to avoid flooding the Alert Log on every poll cycle.
+_STATE_NORMAL = "normal"
+_STATE_INACTIVE = "inactive"      # Device assigned but producing no signal
+_STATE_HR_ALERT = "hr_alert"      # Heart-rate out of safe range
+_STATE_TEMP_ALERT = "temp_alert"  # Temperature out of safe range
+
 
 class WristbandHandler:
     """
@@ -29,6 +36,8 @@ class WristbandHandler:
         self.last_reading_by_wristband: dict[WristbandId, BiometricReading] = {}
         self._monitor_threads: dict[WristbandId, threading.Thread] = {}
         self._monitor_stops: dict[WristbandId, threading.Event] = {}
+        # Track the current alert state per wristband to avoid flooding on every poll.
+        self._alert_states: dict[WristbandId, str] = {}
 
     def list_available_hardware(self) -> list[dict]:
         """Queries the IoT Gateway for autodiscovered hardware boards."""
@@ -68,6 +77,7 @@ class WristbandHandler:
             self.active_sessions.pop(wristband_id, None)
             self.member_thresholds.pop(wristband_id, None)
             self.last_reading_by_wristband.pop(wristband_id, None)
+            self._alert_states.pop(wristband_id, None)
         self._iot.unregister_wristband(wristband_id)
         return True
 
@@ -91,15 +101,39 @@ class WristbandHandler:
         with self._lock:
             self.last_reading_by_wristband[reading.wristband_id] = reading
             thresholds = self.member_thresholds.get(reading.wristband_id)
+            member_id = self.active_sessions.get(reading.wristband_id, "unknown")
+            prev_state = self._alert_states.get(reading.wristband_id, _STATE_NORMAL)
 
         self._analytics.onBiometricReading(reading)
 
-        if thresholds:
-            severity = None
-            if reading.heart_rate > thresholds.heart_rate_max or reading.heart_rate < thresholds.heart_rate_min:
-                severity = AlertSeverity.WARNING
-            elif reading.temperature > thresholds.temperature_max or reading.temperature < thresholds.temperature_min:
-                severity = AlertSeverity.WARNING
-            
-            if severity:
-                self._analytics.onBiometricAlert(reading, severity)
+        if not thresholds:
+            return
+
+        # A reading of exactly 0 for HR and abnormally low EDA means the device is assigned but not worn
+        no_signal = (reading.heart_rate < 1.0 and reading.eda < 0.1)
+        if no_signal:
+            desired_state = _STATE_INACTIVE
+        elif reading.heart_rate > thresholds.heart_rate_max or reading.heart_rate < thresholds.heart_rate_min:
+            desired_state = _STATE_HR_ALERT
+        elif reading.temperature > thresholds.temperature_max or reading.temperature < thresholds.temperature_min:
+            desired_state = _STATE_TEMP_ALERT
+        else:
+            desired_state = _STATE_NORMAL
+
+        # Only emit an alert on state *transitions* to avoid flooding the log.
+        if desired_state == prev_state:
+            return
+
+        with self._lock:
+            self._alert_states[reading.wristband_id] = desired_state
+
+        if desired_state == _STATE_INACTIVE:
+            self._analytics.raise_alert(
+                AlertSeverity.WARNING,
+                f"Wristband {reading.wristband_id} assigned to member {member_id} is inactive — no biometric signal detected.",
+                {"type": "inactive_device", "wristband_id": reading.wristband_id, "member_id": member_id},
+            )
+        elif desired_state == _STATE_HR_ALERT:
+            self._analytics.onBiometricAlert(reading, AlertSeverity.WARNING)
+        elif desired_state == _STATE_TEMP_ALERT:
+            self._analytics.onBiometricAlert(reading, AlertSeverity.WARNING)

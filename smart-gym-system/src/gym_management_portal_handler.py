@@ -16,7 +16,7 @@ from .data_stores import (
     VideoClipsArchive,
 )
 from .wristband_handler import WristbandHandler
-from .datatypes import AlertId, MemberId, ReportId, VideoClipId
+from .datatypes import AlertId, AlertSeverity, MemberId, ReportId, VideoClipId
 
 
 def _jsonable(value: object) -> object:
@@ -121,6 +121,31 @@ def create_portal_blueprint(
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         return jsonify(_jsonable(alerts))
+
+    @portal_bp.route("/alerts", methods=["POST"])
+    def createAlert():
+        """Raise a staff-facing alert directly via the REST API."""
+        try:
+            body = _require_json_object()
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        severity_raw = body.get("severity", "Warning")
+        try:
+            severity = AlertSeverity(severity_raw)
+        except ValueError:
+            return jsonify({"error": f"Invalid severity {severity_raw!r}. Choose from: {[s.value for s in AlertSeverity]}"}), 400
+
+        message = body.get("message", "")
+        if not isinstance(message, str) or not message.strip():
+            return jsonify({"error": "message is required"}), 400
+
+        metadata = body.get("metadata", {})
+        if not isinstance(metadata, dict):
+            return jsonify({"error": "metadata must be an object"}), 400
+
+        alert = handler.analytics_engine.raise_alert(severity, message.strip(), metadata)
+        return jsonify({"ok": True, "alert": _jsonable(alert)}), 201
 
     @portal_bp.route("/alerts/<alert_id>", methods=["GET"])
     def viewAlert(alert_id: AlertId):

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { io, Socket } from 'socket.io-client';
 import * as portalApi from './services/portalApi';
 import { AlertInfo, AlertSeverity } from './types';
 
@@ -41,7 +42,15 @@ const AlertsDashboard = () => {
         }
     };
 
-    useEffect(() => { loadAlerts(); }, []);
+    useEffect(() => {
+        loadAlerts();
+
+        const socket: Socket = io('/', { path: '/socket.io' });
+        socket.on('alertCreated', (alert: AlertInfo) => {
+            setAlerts(prev => [alert, ...prev.filter(a => a.alert_id !== alert.alert_id)]);
+        });
+        return () => { socket.disconnect(); };
+    }, []);
 
     const handleDismiss = async (alertId: string) => {
         try {

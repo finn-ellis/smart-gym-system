@@ -67,51 +67,32 @@ class DataAnalyticsEngine:
             self._socketio.emit("gymStateUpdate", _jsonable(self.gym_state))
 
     def onSensorProcess(self, reading: EnvironmentalReading, severity: AlertSeverity) -> None:
-        alert = self._build_alert(
+        zone_key = reading.zone_id or reading.sensor_id or "unknown"
+        with self._lock:
+            air_quality = dict(self.gym_state.air_quality)
+            air_quality[zone_key] = reading.air_quality
+            self.gym_state = replace(self.gym_state, timestamp=time.time(), air_quality=air_quality)
+        self.raise_alert(
             severity,
             "Environmental sensor alert",
             {
                 "type": "environmental",
-                "reading": reading,
                 "sensor_id": reading.sensor_id,
                 "zone_id": reading.zone_id,
             },
         )
-        self._alert_log.add_alert(alert)
-        with self._lock:
-            air_quality = dict(self.gym_state.air_quality)
-            zone_key = reading.zone_id or reading.sensor_id or "unknown"
-            air_quality[zone_key] = reading.air_quality
-            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
-            self.gym_state = replace(
-                self.gym_state,
-                timestamp=time.time(),
-                air_quality=air_quality,
-                active_alert_ids=active_alert_ids,
-            )
-        self.broadcastGymState()
 
     def onBiometricAlert(self, reading: BiometricReading, severity: AlertSeverity) -> None:
-        alert = self._build_alert(
+        self.raise_alert(
             severity,
             "Biometric threshold alert",
             {
                 "type": "biometric",
-                "reading": reading,
                 "wristband_id": reading.wristband_id,
+                "heart_rate": reading.heart_rate,
+                "temperature": reading.temperature,
             },
         )
-        self._alert_log.add_alert(alert)
-        with self._lock:
-            # We could track specific biometric states in gym_state if desired, 
-            # but for now we just track that an alert is active.
-            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
-            self.gym_state = replace(
-                self.gym_state,
-                timestamp=time.time(),
-                active_alert_ids=active_alert_ids,
-            )
-        self.broadcastGymState()
 
     def onBiometricReading(self, reading: BiometricReading) -> None:
         """
@@ -121,20 +102,11 @@ class DataAnalyticsEngine:
             self._socketio.emit("biometricUpdate", _jsonable(reading))
 
     def onVideoAlert(self, severity: AlertSeverity, clip_id: VideoClipId) -> None:
-        alert = self._build_alert(
+        self.raise_alert(
             severity,
             "Video safety alert",
             {"type": "video", "clip_id": clip_id},
         )
-        self._alert_log.add_alert(alert)
-        with self._lock:
-            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
-            self.gym_state = replace(
-                self.gym_state,
-                timestamp=time.time(),
-                active_alert_ids=active_alert_ids,
-            )
-        self.broadcastGymState()
 
     def onOccupancyCounted(self, counts: OccupancyCountsByZone) -> None:
         with self._lock:
@@ -159,6 +131,27 @@ class DataAnalyticsEngine:
                 active_alert_ids=active_alert_ids,
             )
         self.broadcastGymState()
+
+    def raise_alert(
+        self,
+        severity: AlertSeverity,
+        message: str,
+        metadata: Optional[dict[str, object]] = None,
+    ) -> AlertInfo:
+        """Public API to raise a staff-facing alert, persist it, and push it over WebSocket."""
+        alert = self._build_alert(severity, message, metadata or {})
+        self._alert_log.add_alert(alert)
+        with self._lock:
+            active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
+            self.gym_state = replace(
+                self.gym_state,
+                timestamp=time.time(),
+                active_alert_ids=active_alert_ids,
+            )
+        if self._socketio is not None:
+            self._socketio.emit("alertCreated", _jsonable(alert))
+        self.broadcastGymState()
+        return alert
 
     def _build_alert(
         self,
