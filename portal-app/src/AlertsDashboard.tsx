@@ -161,15 +161,41 @@ const AlertsDashboard = () => {
                                 <div className="alert-card-message">
                                     {alert.message || 'No message provided.'}
                                 </div>
-                                {Object.keys(alert.metadata ?? {}).length > 0 && (
-                                    <div className="alert-card-meta">
-                                        {Object.entries(alert.metadata).map(([k, v]) => (
-                                            <span key={k} style={{ marginRight: '0.75rem' }}>
-                                                <strong>{k}:</strong> {String(v)}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                                {(() => {
+                                    const isVideo = alert.metadata?.type === 'video';
+                                    const clipId = isVideo && alert.metadata?.clip_id ? String(alert.metadata.clip_id) : '';
+                                    const aiDetail = isVideo && alert.metadata?.detail ? String(alert.metadata.detail) : '';
+                                    const otherEntries = Object.entries(alert.metadata ?? {}).filter(
+                                        ([k]) => !(isVideo && ['type', 'clip_id', 'detail'].includes(k))
+                                    );
+                                    return (
+                                        <>
+                                            {isVideo && clipId && (
+                                                <div style={{ marginTop: '0.5rem' }}>
+                                                    <video
+                                                        src={`/api/videos/${clipId}/stream`}
+                                                        controls
+                                                        style={{ width: '100%', maxWidth: 400, borderRadius: 4 }}
+                                                    />
+                                                </div>
+                                            )}
+                                            {isVideo && aiDetail && (
+                                                <div style={{ fontSize: '0.8rem', marginTop: '0.4rem', color: 'var(--text-muted)' }}>
+                                                    AI analysis: <em>{aiDetail}</em>
+                                                </div>
+                                            )}
+                                            {otherEntries.length > 0 && (
+                                                <div className="alert-card-meta">
+                                                    {otherEntries.map(([k, v]) => (
+                                                        <span key={k} style={{ marginRight: '0.75rem' }}>
+                                                            <strong>{k}:</strong> {String(v)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                                 <div className="alert-card-meta">{formatTs(alert.timestamp)}</div>
                             </div>
                             {!alert.dismissed && (

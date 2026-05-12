@@ -93,7 +93,10 @@ const VideoCapture = () => {
         setResult(null);
         setRecordingState('camera-starting');
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 5, max: 10 } },
+                audio: false,
+            });
             streamRef.current = stream;
             setRecordingState('ready');
         } catch (e) {
@@ -132,7 +135,7 @@ const VideoCapture = () => {
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
             ? 'video/webm;codecs=vp9'
             : 'video/webm';
-        const mr = new MediaRecorder(stream, { mimeType });
+        const mr = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 800_000 });
 
         mr.ondataavailable = (e) => {
             if (e.data.size > 0) chunksRef.current.push(e.data);

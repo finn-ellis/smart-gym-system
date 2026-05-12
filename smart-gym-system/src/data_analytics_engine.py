@@ -101,12 +101,11 @@ class DataAnalyticsEngine:
         if self._socketio is not None:
             self._socketio.emit("biometricUpdate", _jsonable(reading))
 
-    def onVideoAlert(self, severity: AlertSeverity, clip_id: VideoClipId) -> None:
-        self.raise_alert(
-            severity,
-            "Video safety alert",
-            {"type": "video", "clip_id": clip_id},
-        )
+    def onVideoAlert(self, severity: AlertSeverity, clip_id: VideoClipId, detail: str = "") -> None:
+        metadata: dict[str, object] = {"type": "video", "clip_id": clip_id}
+        if detail:
+            metadata["detail"] = detail
+        self.raise_alert(severity, "Video safety alert", metadata)
 
     def onOccupancyCounted(self, counts: OccupancyCountsByZone) -> None:
         with self._lock:

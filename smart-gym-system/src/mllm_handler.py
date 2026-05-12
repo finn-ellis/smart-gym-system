@@ -142,10 +142,10 @@ class MLLMHandler:
 
         if "CRITICAL" in verdict_raw:
             verdict = "CRITICAL"
-            self._analytics_engine.onVideoAlert(AlertSeverity.CRITICAL, clip_id)
+            self._analytics_engine.onVideoAlert(AlertSeverity.CRITICAL, clip_id, detail)
         elif "WARNING" in verdict_raw:
             verdict = "WARNING"
-            self._analytics_engine.onVideoAlert(AlertSeverity.WARNING, clip_id)
+            self._analytics_engine.onVideoAlert(AlertSeverity.WARNING, clip_id, detail)
         else:
             verdict = "NO_INCIDENT"
 
