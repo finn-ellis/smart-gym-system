@@ -103,6 +103,8 @@ class DataAnalyticsEngine:
         )
         self._alert_log.add_alert(alert)
         with self._lock:
+            # We could track specific biometric states in gym_state if desired, 
+            # but for now we just track that an alert is active.
             active_alert_ids = [*self.gym_state.active_alert_ids, alert.alert_id]
             self.gym_state = replace(
                 self.gym_state,
@@ -110,6 +112,13 @@ class DataAnalyticsEngine:
                 active_alert_ids=active_alert_ids,
             )
         self.broadcastGymState()
+
+    def onBiometricReading(self, reading: BiometricReading) -> None:
+        """
+        Broadcasts raw biometric readings to connected clients.
+        """
+        if self._socketio is not None:
+            self._socketio.emit("biometricUpdate", _jsonable(reading))
 
     def onVideoAlert(self, severity: AlertSeverity, clip_id: VideoClipId) -> None:
         alert = self._build_alert(

@@ -92,6 +92,8 @@ class WristbandHandler:
             self.last_reading_by_wristband[reading.wristband_id] = reading
             thresholds = self.member_thresholds.get(reading.wristband_id)
 
+        self._analytics.onBiometricReading(reading)
+
         if thresholds:
             severity = None
             if reading.heart_rate > thresholds.heart_rate_max or reading.heart_rate < thresholds.heart_rate_min:

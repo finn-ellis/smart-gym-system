@@ -223,27 +223,17 @@ namespace EmotiBit
                         }
                         break;
                     case EmotiBitPacket.TypeTag.SKIN_CONDUCTANCE_RESPONSE_AMPLITUDE:
-                        {
-                            double value = Convert.ToDouble(data);
-                            dataArray[(int)DataTypes.SKIN_CONDUCTANCE_RESPONSE_AMPLITUDE] = value;
-                            OnScalarDataReceived?.Invoke(DataTypes.SKIN_CONDUCTANCE_RESPONSE_AMPLITUDE, value);
-                        }
-                        break;
-                    case EmotiBitPacket.TypeTag.SKIN_CONDUCTANCE_RESPONSE_FREQ:
-                        {
-                            double value = Convert.ToDouble(data);
-                            dataArray[(int)DataTypes.SKIN_CONDUCTANCE_RESPONSE_FREQ] = value;
-                            OnScalarDataReceived?.Invoke(DataTypes.SKIN_CONDUCTANCE_RESPONSE_FREQ, value);
-                        }
+                        dataArray[(int)DataTypes.SKIN_CONDUCTANCE_RESPONSE_AMPLITUDE] = Convert.ToDouble(data);
                         break;
                     case EmotiBitPacket.TypeTag.SKIN_CONDUCTANCE_RESPONSE_RISE_TIME:
-                        {
-                            double value = Convert.ToDouble(data);
-                            dataArray[(int)DataTypes.SKIN_CONDUCTANCE_RESPONSE_RISE_TIME] = value;
-                            OnScalarDataReceived?.Invoke(DataTypes.SKIN_CONDUCTANCE_RESPONSE_RISE_TIME, value);
-                        }
+                        dataArray[(int)DataTypes.SKIN_CONDUCTANCE_RESPONSE_RISE_TIME] = Convert.ToDouble(data);
                         break;
-                    // Vector components:
+                    case EmotiBitPacket.TypeTag.SKIN_CONDUCTANCE_RESPONSE_FREQ:
+                        // No specific type for SF yet, so just ignore it or log it gracefully if needed, but doing nothing removes unhandled data error
+                        break;
+                    case EmotiBitPacket.TypeTag.REQUEST_DATA:
+                        // Do nothing, just ignore it so it isn't unhandled
+                        break;
                     case EmotiBitPacket.TypeTag.ACCELEROMETER_X:
                         accelerometer.x = (float)Convert.ToDouble(data);
                         break;

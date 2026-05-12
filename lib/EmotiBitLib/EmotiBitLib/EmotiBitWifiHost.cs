@@ -431,7 +431,8 @@ namespace EmotiBit
                                 // Validate that the PONG response contains the correct DATA_PORT
                                 string dataPortValue = "";
                                 int valuePos = EmotiBitPacket.GetPacketKeyedValue(packet, EmotiBitPacket.PayloadLabel.DATA_PORT, out dataPortValue, dataStartChar);
-                                if (valuePos > -1 && int.Parse(dataPortValue) == _dataPort)
+                                
+                                if ((valuePos > -1 && int.Parse(dataPortValue) == _dataPort) || isStartingConnection)
                                 {
                                     // Establish / maintain connected status
                                     if (isStartingConnection)
@@ -439,6 +440,7 @@ namespace EmotiBit
                                         FlushData();
                                         _isConnected = true;
                                         isStartingConnection = false;
+                                        connectionTimer = stopwatch.ElapsedMilliseconds;
                                         Debug.Log($"Connected to EmotiBit: {connectedEmotibitIdentifier}");
                                     }
                                     // if (_isConnected)
@@ -487,6 +489,12 @@ namespace EmotiBit
                     byte[] data = Encoding.UTF8.GetBytes(packet);
                     IPEndPoint remoteEP = new IPEndPoint(IPAddress.Parse(connectedEmotibitIp), advertisingPort);
                     advertisingCxn.Send(data, data.Length, remoteEP);
+
+                    // Also explicitly send PING to elicit a PONG, which is what we use to detect connection success!
+                    string pingPacket = EmotiBitPacket.CreatePacket(EmotiBitPacket.TypeTag.PING, advertisingPacketCounter++, new List<string> { EmotiBitPacket.PayloadLabel.DATA_PORT, _dataPort.ToString() });
+                    byte[] pingData = Encoding.UTF8.GetBytes(pingPacket);
+                    advertisingCxn.Send(pingData, pingData.Length, remoteEP);
+
                     connectionTimer = stopwatch.ElapsedMilliseconds;
                     Debug.Log("attempt connect: " + connectedEmotibitIp);
                 }
@@ -540,13 +548,24 @@ namespace EmotiBit
                         IPEndPoint remoteEP = new IPEndPoint(IPAddress.Any, 0);
                         byte[] receivedBytes = dataCxn.Receive(ref remoteEP);
 
-                        if (_isConnected && remoteEP.Address.ToString() == connectedEmotibitIp)
+                        if (remoteEP.Address.ToString() == connectedEmotibitIp)
                         {
-                            string message = Encoding.UTF8.GetString(receivedBytes);
-                            string[] packets = message.Split(new[] { EmotiBitPacket.PACKET_DELIMITER_CSV }, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (var packet in packets)
+                            if (isStartingConnection) 
                             {
-                                dataPackets.PushBack(packet);
+                                _isConnected = true;
+                                isStartingConnection = false;
+                                connectionTimer = stopwatch.ElapsedMilliseconds;
+                                Debug.Log($"Connected to EmotiBit via Data stream: {connectedEmotibitIdentifier}");
+                            }
+
+                            if (_isConnected) 
+                            {
+                                string message = Encoding.UTF8.GetString(receivedBytes);
+                                string[] packets = message.Split(new[] { EmotiBitPacket.PACKET_DELIMITER_CSV }, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var packet in packets)
+                                {
+                                    dataPackets.PushBack(packet);
+                                }
                             }
                         }
                     }

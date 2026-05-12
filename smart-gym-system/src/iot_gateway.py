@@ -16,17 +16,21 @@ class IoTGateway:
         lib_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../lib/EmotiBitLib/EmotiBitLib/bin/Release/net10.0/linux-x64/publish/EmotiBitLib.so'))
         self._emotibit_lib = None
         try:
-            if os.path.exists(lib_path):
-                self._emotibit_lib = ctypes.CDLL(lib_path)
+            self._emotibit_lib = ctypes.CDLL(lib_path)
+            if self._emotibit_lib:
+                # Define argtypes and restypes for safety
                 self._emotibit_lib.InitEmotiBit.restype = None
                 self._emotibit_lib.UpdateEmotiBit.restype = None
                 self._emotibit_lib.ConnectEmotiBit.argtypes = [ctypes.c_char_p]
-                self._emotibit_lib.ConnectEmotiBit.restype = None
                 self._emotibit_lib.DisconnectEmotiBit.restype = None
                 self._emotibit_lib.IsConnected.restype = ctypes.c_bool
                 self._emotibit_lib.GetDiscoveredDevicesList.restype = ctypes.c_void_p
                 self._emotibit_lib.GetBatteryLevel.restype = ctypes.c_void_p
-                
+            
+                # Add GetData
+                self._emotibit_lib.GetData.argtypes = [ctypes.c_int]
+                self._emotibit_lib.GetData.restype = ctypes.c_double
+
                 self._emotibit_lib.InitEmotiBit()
                 print("EmotiBitLib initialized successfully.")
             else:
@@ -105,10 +109,10 @@ class IoTGateway:
                 print(f"[Polling] Wristband {wristband_id} not connected.")
                 return BiometricReading(wristband_id, 0.0, [], 0.0, 0.0)
             
-            # Placeholder data as we removed Brainflow dependencies
-            res_hr = 70.0
-            res_eda = 0.5
-            res_temp = 36.5
+            # Read real data via ctypes (0 = EDA, 8 = TEMPERATURE_1, 11 = HEART_RATE)
+            res_eda = self._emotibit_lib.GetData(0)
+            res_temp = self._emotibit_lib.GetData(8)
+            res_hr = self._emotibit_lib.GetData(11)
             
             print(f"[Polling] Wristband {wristband_id} data - HR: {res_hr}, EDA: {res_eda}, Temp: {res_temp}")
             return BiometricReading(

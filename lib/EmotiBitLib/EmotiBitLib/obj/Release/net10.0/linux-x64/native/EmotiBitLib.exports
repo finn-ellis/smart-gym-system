@@ -8,5 +8,6 @@ V1.0 {
         IsConnected;
         GetDiscoveredDevicesList;
         GetBatteryLevel;
+        GetData;
     local: *;
 };

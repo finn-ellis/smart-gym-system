@@ -60,5 +60,15 @@ namespace EmotiBitLib
             string level = _manager?.BatteryLevel ?? "?";
             return Marshal.StringToCoTaskMemAnsi(level);
         }
+
+        [UnmanagedCallersOnly(EntryPoint = "GetData")]
+        public static double GetData(int dataTypeIndex)
+        {
+            if (_manager != null && Enum.IsDefined(typeof(DataTypes), dataTypeIndex))
+            {
+                return _manager.GetData((DataTypes)dataTypeIndex);
+            }
+            return 0.0;
+        }
     }
 }
